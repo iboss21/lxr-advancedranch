@@ -12,17 +12,10 @@
 ## 📸 Screenshots
 
 <div align="center">
-  <img src="screenshots/dashboard.png" alt="Ranch Dashboard" width="800"/>
+  <img src="https://github.com/user-attachments/assets/7f4cfa18-4bce-48cb-919d-8752478bb3f6" alt="Ranch Dashboard" width="800"/>
   <p><em>Supreme-level dashboard with real-time ranch statistics and health monitoring</em></p>
   
-  <img src="screenshots/livestock.png" alt="Livestock Management" width="800"/>
-  <p><em>Comprehensive livestock tracking with health, trust, and genetics</em></p>
-  
-  <img src="screenshots/environment.png" alt="Environment System" width="800"/>
-  <p><em>Dynamic seasons, weather patterns, and environmental hazards</em></p>
-  
-  <img src="screenshots/economy.png" alt="Economy & Ledger" width="800"/>
-  <p><em>Full economy system with market prices, contracts, and accounting</em></p>
+  <p><em>Additional screenshots coming soon: Livestock Management, Environment System, Economy & Ledger, Progression & Skills, Auction House</em></p>
 </div>
 
 > **Note:** Screenshots show the supreme-level NUI interface designed specifically for RedM. All UI elements are fully responsive and optimized for gameplay.

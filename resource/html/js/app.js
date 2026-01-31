@@ -540,11 +540,408 @@ function showHireDialog() {
 /**
  * View animal details
  */
+// Current animal ID for actions
+let currentAnimalId = null;
+
 function viewAnimalDetails(animalId) {
-    $.post('https://ranch-system-omni/viewAnimalDetails', JSON.stringify({
-        animalId: animalId
-    }));
+    // Safety check
+    if (!ranchData.livestock) {
+        showNotification('No livestock data available', 'error');
+        return;
+    }
+    
+    const animal = ranchData.livestock.find(a => a.id === animalId);
+    if (!animal) return;
+    
+    // Populate modal
+    $('#modalAnimalName').text(animal.name || 'Unnamed Animal');
+    $('#modalSpecies').text(capitalizeFirst(animal.species || 'Unknown'));
+    $('#modalBreed').text(animal.breed || 'Mixed');
+    $('#modalAge').text(animal.age ? `${animal.age} years` : 'Unknown');
+    $('#modalGender').text(capitalizeFirst(animal.gender || 'Unknown'));
+    
+    // Health stats
+    const health = Math.round((animal.health || 1) * 100);
+    const trust = Math.round((animal.trust || 0.5) * 100);
+    const hunger = Math.round((1 - (animal.hunger || 0)) * 100);
+    
+    $('#modalHealth').text(health + '%');
+    $('#modalHealthBar').css('width', health + '%');
+    $('#modalTrust').text(trust + '%');
+    $('#modalTrustBar').css('width', trust + '%');
+    $('#modalHunger').text(hunger + '%');
+    $('#modalHungerBar').css('width', hunger + '%');
+    
+    // Genetics
+    $('#modalBloodline').text(animal.bloodline || 'Unknown');
+    const quality = animal.quality || 'common';
+    $('#modalQuality').html(`<span class="quality-badge ${quality}">${capitalizeFirst(quality)}</span>`);
+    
+    // Traits
+    const traitsContainer = $('#modalTraits');
+    traitsContainer.empty();
+    if (animal.traits && animal.traits.length > 0) {
+        animal.traits.forEach(trait => {
+            traitsContainer.append(`<span class="trait-badge">${trait}</span>`);
+        });
+    } else {
+        traitsContainer.append('<span class="trait-badge">No special traits</span>');
+    }
+    
+    // Store current animal ID for actions
+    currentAnimalId = animalId;
+    
+    // Show modal
+    $('#animalModal').fadeIn(300);
 }
+
+/**
+ * Close animal modal
+ */
+function closeAnimalModal() {
+    $('#animalModal').fadeOut(300);
+    currentAnimalId = null;
+}
+
+/**
+ * Feed animal action
+ */
+function feedAnimal() {
+    if (!currentAnimalId) return;
+    
+    $.post('https://ranch-system-omni/feedAnimal', JSON.stringify({
+        animalId: currentAnimalId
+    }));
+    
+    showNotification('Animal fed successfully', 'success');
+    closeAnimalModal();
+}
+
+/**
+ * Treat animal action
+ */
+function treatAnimal() {
+    if (!currentAnimalId) return;
+    
+    $.post('https://ranch-system-omni/treatAnimal', JSON.stringify({
+        animalId: currentAnimalId
+    }));
+    
+    showNotification('Treatment applied', 'success');
+    closeAnimalModal();
+}
+
+/**
+ * Breed animal action
+ */
+function breedAnimal() {
+    if (!currentAnimalId) return;
+    
+    $.post('https://ranch-system-omni/breedAnimal', JSON.stringify({
+        animalId: currentAnimalId
+    }));
+    
+    showNotification('Breeding initiated', 'success');
+    closeAnimalModal();
+}
+
+/**
+ * Sell animal action
+ */
+function sellAnimal() {
+    if (!currentAnimalId) return;
+    
+    if (confirm('Are you sure you want to sell this animal?')) {
+        $.post('https://ranch-system-omni/sellAnimal', JSON.stringify({
+            animalId: currentAnimalId
+        }));
+        
+        showNotification('Animal sold', 'success');
+        closeAnimalModal();
+    }
+}
+
+/**
+ * Open progression modal
+ */
+function openProgressionModal() {
+    const prog = ranchData.progression || {};
+    
+    // Set level and XP
+    $('#progLevel').text(prog.level || 1);
+    const currentXP = prog.xp || 0;
+    const requiredXP = prog.requiredXP || 1000;
+    const xpPercent = (currentXP / requiredXP) * 100;
+    
+    $('#currentXP').text(currentXP);
+    $('#requiredXP').text(requiredXP);
+    $('#xpBar').css('width', xpPercent + '%');
+    
+    // Render skills
+    renderSkills('husbandry', prog.skills?.husbandry || []);
+    renderSkills('veterinary', prog.skills?.veterinary || []);
+    renderSkills('wrangler', prog.skills?.wrangler || []);
+    renderSkills('teamster', prog.skills?.teamster || []);
+    
+    // Render achievements
+    renderAchievements(prog.achievements || []);
+    
+    // Show modal
+    $('#progressionModal').fadeIn(300);
+}
+
+/**
+ * Close progression modal
+ */
+function closeProgressionModal() {
+    $('#progressionModal').fadeOut(300);
+}
+
+/**
+ * Render skills for a specific category
+ */
+function renderSkills(category, skills) {
+    const container = $(`#${category}Skills`);
+    container.empty();
+    
+    // Sample skills if none provided
+    if (!skills || skills.length === 0) {
+        skills = [
+            { name: 'Basic Training', level: 1, unlocked: true },
+            { name: 'Advanced Care', level: 0, unlocked: false },
+            { name: 'Master Handler', level: 0, unlocked: false }
+        ];
+    }
+    
+    skills.forEach(skill => {
+        const skillItem = $(`
+            <div class="skill-item ${skill.unlocked ? '' : 'locked'}">
+                <span class="skill-name">${skill.name}</span>
+                <span class="skill-level">Lvl ${skill.level || 0}</span>
+            </div>
+        `);
+        container.append(skillItem);
+    });
+}
+
+/**
+ * Render achievements
+ */
+function renderAchievements(achievements) {
+    const container = $('#achievementsList');
+    container.empty();
+    
+    // Sample achievements if none provided
+    if (!achievements || achievements.length === 0) {
+        achievements = [
+            { id: 'first_animal', name: 'First Steps', desc: 'Purchase your first animal', unlocked: true, icon: 'fa-paw' },
+            { id: 'ten_animals', name: 'Growing Herd', desc: 'Own 10 animals', unlocked: false, icon: 'fa-horse-head' },
+            { id: 'first_birth', name: 'New Life', desc: 'Birth your first animal', unlocked: false, icon: 'fa-heart' },
+            { id: 'master_breeder', name: 'Master Breeder', desc: 'Breed 50 animals', unlocked: false, icon: 'fa-trophy' },
+            { id: 'first_sale', name: 'Entrepreneur', desc: 'Sell your first animal', unlocked: true, icon: 'fa-dollar-sign' },
+            { id: 'wealthy', name: 'Wealthy Rancher', desc: 'Earn $10,000', unlocked: false, icon: 'fa-coins' }
+        ];
+    }
+    
+    achievements.forEach(achievement => {
+        const card = $(`
+            <div class="achievement-card ${achievement.unlocked ? '' : 'locked'}">
+                <div class="achievement-icon">
+                    <i class="fas ${achievement.icon || 'fa-star'}"></i>
+                </div>
+                <div class="achievement-name">${achievement.name}</div>
+                <div class="achievement-desc">${achievement.desc}</div>
+            </div>
+        `);
+        container.append(card);
+    });
+}
+
+/**
+ * Open auction modal
+ */
+function openAuctionModal() {
+    renderAuctionListings();
+    $('#auctionModal').fadeIn(300);
+}
+
+/**
+ * Close auction modal
+ */
+function closeAuctionModal() {
+    $('#auctionModal').fadeOut(300);
+}
+
+/**
+ * Render auction listings
+ */
+function renderAuctionListings() {
+    const container = $('#auctionListings');
+    container.empty();
+    
+    // Sample auction items
+    const auctionItems = ranchData.economy?.auctions || [
+        {
+            id: 1,
+            title: 'American Paint Horse',
+            type: 'horse',
+            currentBid: 450,
+            timeLeft: '2h 15m',
+            seller: 'John Doe',
+            quality: 'excellent'
+        },
+        {
+            id: 2,
+            title: 'Angus Bull',
+            type: 'cattle',
+            currentBid: 800,
+            timeLeft: '5h 30m',
+            seller: 'Jane Smith',
+            quality: 'superior'
+        },
+        {
+            id: 3,
+            title: 'Merino Sheep (x5)',
+            type: 'sheep',
+            currentBid: 250,
+            timeLeft: '1h 45m',
+            seller: 'Bob Wilson',
+            quality: 'good'
+        },
+        {
+            id: 4,
+            title: 'Premium Wagon',
+            type: 'equipment',
+            currentBid: 1200,
+            timeLeft: '3h 00m',
+            seller: 'Tom Brown',
+            quality: 'excellent'
+        }
+    ];
+    
+    auctionItems.forEach(item => {
+        const card = $(`
+            <div class="auction-item">
+                <div class="auction-header">
+                    <span class="auction-title">${item.title}</span>
+                    <span class="auction-timer"><i class="fas fa-clock"></i> ${item.timeLeft}</span>
+                </div>
+                <div class="auction-details">
+                    <div class="auction-detail-row">
+                        <span>Seller:</span>
+                        <span>${item.seller}</span>
+                    </div>
+                    <div class="auction-detail-row">
+                        <span>Quality:</span>
+                        <span class="quality-badge ${item.quality}">${capitalizeFirst(item.quality)}</span>
+                    </div>
+                    <div class="auction-detail-row">
+                        <span>Current Bid:</span>
+                        <span style="color: var(--accent-color); font-weight: 700;">$${item.currentBid}</span>
+                    </div>
+                </div>
+                <div class="auction-bid">
+                    <input type="number" class="bid-input" placeholder="Your bid" min="${item.currentBid + 10}" />
+                    <button class="bid-btn" onclick="placeBid(${item.id})">
+                        <i class="fas fa-gavel"></i> Bid
+                    </button>
+                </div>
+            </div>
+        `);
+        container.append(card);
+    });
+    
+    if (auctionItems.length === 0) {
+        container.html('<p style="text-align: center; color: var(--text-secondary); padding: 40px;">No active auctions</p>');
+    }
+}
+
+/**
+ * Place bid on auction item
+ */
+function placeBid(auctionId, event) {
+    // Get the input element from the event target or use jQuery to find it
+    const bidInput = event ? $(event.target).closest('.auction-bid').find('.bid-input') : $(`.auction-item[data-id="${auctionId}"]`).find('.bid-input');
+    const bidAmount = bidInput.val();
+    
+    if (!bidAmount || bidAmount <= 0) {
+        showNotification('Please enter a valid bid amount', 'error');
+        return;
+    }
+    
+    $.post('https://ranch-system-omni/placeBid', JSON.stringify({
+        auctionId: auctionId,
+        amount: parseFloat(bidAmount)
+    }));
+    
+    showNotification('Bid placed successfully!', 'success');
+}
+
+/**
+ * Show notification toast
+ */
+function showNotification(message, type = 'info') {
+    const toast = $('#notificationToast');
+    const icon = $('#toastIcon');
+    const msgSpan = $('#toastMessage');
+    
+    // Set icon based on type
+    const icons = {
+        'success': 'fa-check-circle',
+        'error': 'fa-exclamation-circle',
+        'warning': 'fa-exclamation-triangle',
+        'info': 'fa-info-circle'
+    };
+    
+    icon.removeClass().addClass('fas ' + (icons[type] || icons['info']));
+    toast.removeClass('success error warning').addClass(type);
+    msgSpan.text(message);
+    
+    // Show toast
+    toast.fadeIn(300);
+    
+    // Auto hide after 3 seconds
+    setTimeout(() => {
+        toast.fadeOut(300);
+    }, 3000);
+}
+
+/**
+ * Show tooltip
+ */
+function showTooltip(text, x, y) {
+    const tooltip = $('#tooltip');
+    $('#tooltipContent').text(text);
+    tooltip.css({ left: x + 'px', top: y + 'px' });
+    tooltip.fadeIn(200);
+}
+
+/**
+ * Hide tooltip
+ */
+function hideTooltip() {
+    $('#tooltip').fadeOut(200);
+}
+
+// Add tooltip hover handlers
+$(document).ready(function() {
+    $('[title]').hover(
+        function(e) {
+            const title = $(this).attr('title');
+            if (title) {
+                $(this).data('title', title).removeAttr('title');
+                showTooltip(title, e.pageX + 10, e.pageY + 10);
+            }
+        },
+        function() {
+            const title = $(this).data('title');
+            if (title) {
+                $(this).attr('title', title);
+            }
+            hideTooltip();
+        }
+    );
+});
 
 /**
  * Load admin logs
@@ -591,3 +988,14 @@ window.closeUI = closeUI;
 window.showTab = showTab;
 window.adminAction = adminAction;
 window.showHireDialog = showHireDialog;
+window.viewAnimalDetails = viewAnimalDetails;
+window.closeAnimalModal = closeAnimalModal;
+window.feedAnimal = feedAnimal;
+window.treatAnimal = treatAnimal;
+window.breedAnimal = breedAnimal;
+window.sellAnimal = sellAnimal;
+window.openProgressionModal = openProgressionModal;
+window.closeProgressionModal = closeProgressionModal;
+window.openAuctionModal = openAuctionModal;
+window.closeAuctionModal = closeAuctionModal;
+window.placeBid = placeBid;

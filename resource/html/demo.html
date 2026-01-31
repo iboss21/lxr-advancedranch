@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ranch System UI Demo - Land of the Wolves</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Demo-specific styles */
+        body {
+            background: linear-gradient(135deg, #1a1410 0%, #2d1f15 100%);
+            padding: 20px;
+        }
+        
+        .demo-controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(20, 15, 10, 0.95);
+            border: 2px solid #8b6f47;
+            border-radius: 8px;
+            padding: 15px;
+            z-index: 30000;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            max-width: 300px;
+        }
+        
+        .demo-btn {
+            background: #d4a574;
+            border: none;
+            color: #140f0a;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        
+        .demo-btn:hover {
+            background: #c9935a;
+            transform: scale(1.05);
+        }
+        
+        .demo-title {
+            width: 100%;
+            color: #d4a574;
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Demo Controls -->
+    <div class="demo-controls">
+        <div class="demo-title">Ranch UI Demo</div>
+        <button class="demo-btn" onclick="showUI()">Show UI</button>
+        <button class="demo-btn" onclick="loadSampleData()">Load Sample Data</button>
+        <button class="demo-btn" onclick="demoAnimalModal()">Animal Modal</button>
+        <button class="demo-btn" onclick="demoProgression()">Progression</button>
+        <button class="demo-btn" onclick="demoAuction()">Auction</button>
+        <button class="demo-btn" onclick="demoNotifications()">Notifications</button>
+    </div>
+
+    <!-- Main Ranch UI (copied from index.html) -->
+    <div class="ranch-ui" id="ranchUI" style="display: none;">
+        <!-- Header Bar -->
+        <div class="header-bar">
+            <div class="ranch-title">
+                <i class="fas fa-horse-head"></i>
+                <span id="ranchName">Land of the Wolves Ranch</span>
+            </div>
+            <div class="season-weather">
+                <span class="season" id="currentSeason">
+                    <i class="fas fa-leaf"></i> Spring
+                </span>
+                <span class="weather" id="currentWeather">
+                    <i class="fas fa-sun"></i> Clear
+                </span>
+            </div>
+            <button class="close-btn" onclick="closeUI()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="showTab('dashboard')">
+                <i class="fas fa-tachometer-alt"></i> Dashboard
+            </button>
+            <button class="tab-btn" onclick="showTab('livestock')">
+                <i class="fas fa-cow"></i> Livestock
+            </button>
+            <button class="tab-btn" onclick="showTab('workforce')">
+                <i class="fas fa-users"></i> Workforce
+            </button>
+            <button class="tab-btn" onclick="showTab('economy')">
+                <i class="fas fa-coins"></i> Economy
+            </button>
+            <button class="tab-btn" onclick="showTab('environment')">
+                <i class="fas fa-tree"></i> Environment
+            </button>
+            <button class="tab-btn" onclick="showTab('admin')">
+                <i class="fas fa-cog"></i> Admin
+            </button>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div class="tab-content active" id="dashboard">
+            <div class="dashboard-header">
+                <button class="btn-icon" onclick="openProgressionModal()" title="Skills & Progression">
+                    <i class="fas fa-star"></i> Progression
+                </button>
+                <button class="btn-icon" onclick="openAuctionModal()" title="Auction House">
+                    <i class="fas fa-gavel"></i> Auction
+                </button>
+            </div>
+            <div class="dashboard-grid">
+                <!-- Quick Stats -->
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-cow"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-label">Total Animals</span>
+                        <span class="stat-value" id="totalAnimals">47</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-label">Workers</span>
+                        <span class="stat-value" id="totalWorkers">8</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-label">Balance</span>
+                        <span class="stat-value" id="ranchBalance">$15,420</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-label">Ranch Level</span>
+                        <span class="stat-value" id="ranchLevel">12</span>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="activity-panel">
+                    <h3><i class="fas fa-history"></i> Recent Activity</h3>
+                    <div class="activity-list" id="activityList">
+                        <div class="activity-item">
+                            <span class="activity-time">2 min ago</span>
+                            <span class="activity-text">Sold 3 cattle for $900</span>
+                        </div>
+                        <div class="activity-item">
+                            <span class="activity-time">15 min ago</span>
+                            <span class="activity-text">New foal born - "Thunder"</span>
+                        </div>
+                        <div class="activity-item">
+                            <span class="activity-time">1 hour ago</span>
+                            <span class="activity-text">Completed delivery contract to Valentine</span>
+                        </div>
+                        <div class="activity-item">
+                            <span class="activity-time">2 hours ago</span>
+                            <span class="activity-text">Worker John promoted to Foreman</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ranch Health -->
+                <div class="health-panel">
+                    <h3><i class="fas fa-heartbeat"></i> Ranch Health</h3>
+                    <div class="health-bars">
+                        <div class="health-item">
+                            <label>Cleanliness</label>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="cleanlinessBar" style="width: 85%"></div>
+                            </div>
+                            <span class="health-value" id="cleanlinessValue">85%</span>
+                        </div>
+                        <div class="health-item">
+                            <label>Morale</label>
+                            <div class="progress-bar">
+                                <div class="progress-fill morale" id="moraleBar" style="width: 92%"></div>
+                            </div>
+                            <span class="health-value" id="moraleValue">92%</span>
+                        </div>
+                        <div class="health-item">
+                            <label>Integrity</label>
+                            <div class="progress-bar">
+                                <div class="progress-fill integrity" id="integrityBar" style="width: 78%"></div>
+                            </div>
+                            <span class="health-value" id="integrityValue">78%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Livestock Tab -->
+        <div class="tab-content" id="livestock">
+            <div class="livestock-controls">
+                <input type="text" class="search-input" placeholder="Search animals..." id="livestockSearch">
+                <select class="filter-select" id="speciesFilter">
+                    <option value="all">All Species</option>
+                    <option value="horse">Horses</option>
+                    <option value="cattle">Cattle</option>
+                    <option value="sheep">Sheep</option>
+                    <option value="pig">Pigs</option>
+                    <option value="chicken">Chickens</option>
+                </select>
+            </div>
+            <div class="livestock-grid" id="livestockGrid"></div>
+        </div>
+
+        <!-- Other tabs omitted for brevity - same as index.html -->
+        <div class="tab-content" id="workforce"><p style="text-align: center; padding: 40px; color: var(--text-secondary);">Workforce tab content...</p></div>
+        <div class="tab-content" id="economy"><p style="text-align: center; padding: 40px; color: var(--text-secondary);">Economy tab content...</p></div>
+        <div class="tab-content" id="environment"><p style="text-align: center; padding: 40px; color: var(--text-secondary);">Environment tab content...</p></div>
+        <div class="tab-content" id="admin"><p style="text-align: center; padding: 40px; color: var(--text-secondary);">Admin tab content...</p></div>
+    </div>
+
+    <!-- Animal Modal (same as index.html) -->
+    <div class="modal" id="animalModal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2><i class="fas fa-horse-head"></i> <span id="modalAnimalName">Animal Details</span></h2>
+                <button class="close-btn" onclick="closeAnimalModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="animal-details-grid">
+                    <div class="detail-section">
+                        <h3><i class="fas fa-info-circle"></i> Basic Info</h3>
+                        <div class="info-row">
+                            <span class="info-label">Species:</span>
+                            <span class="info-value" id="modalSpecies">Horse</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Breed:</span>
+                            <span class="info-value" id="modalBreed">American Paint</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Age:</span>
+                            <span class="info-value" id="modalAge">3 years</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Gender:</span>
+                            <span class="info-value" id="modalGender">Mare</span>
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <h3><i class="fas fa-heartbeat"></i> Health Status</h3>
+                        <div class="stat-bar">
+                            <label>Health</label>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="modalHealthBar" style="width: 95%"></div>
+                            </div>
+                            <span id="modalHealth">95%</span>
+                        </div>
+                        <div class="stat-bar">
+                            <label>Trust</label>
+                            <div class="progress-bar">
+                                <div class="progress-fill morale" id="modalTrustBar" style="width: 87%"></div>
+                            </div>
+                            <span id="modalTrust">87%</span>
+                        </div>
+                        <div class="stat-bar">
+                            <label>Hunger</label>
+                            <div class="progress-bar">
+                                <div class="progress-fill integrity" id="modalHungerBar" style="width: 60%"></div>
+                            </div>
+                            <span id="modalHunger">60%</span>
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <h3><i class="fas fa-dna"></i> Genetics</h3>
+                        <div class="genetics-info">
+                            <div class="info-row">
+                                <span class="info-label">Bloodline:</span>
+                                <span class="info-value" id="modalBloodline">Champion Line</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Quality:</span>
+                                <span class="info-value"><span class="quality-badge excellent">Excellent</span></span>
+                            </div>
+                            <div class="traits-list" id="modalTraits">
+                                <span class="trait-badge">Fast Runner</span>
+                                <span class="trait-badge">Calm Temperament</span>
+                                <span class="trait-badge">Strong Build</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="detail-section full-width">
+                        <h3><i class="fas fa-clipboard-check"></i> Actions</h3>
+                        <div class="action-buttons">
+                            <button class="btn-action" onclick="alert('Feed action')">
+                                <i class="fas fa-apple-alt"></i> Feed
+                            </button>
+                            <button class="btn-action" onclick="alert('Treat action')">
+                                <i class="fas fa-medkit"></i> Treat
+                            </button>
+                            <button class="btn-action" onclick="alert('Breed action')">
+                                <i class="fas fa-heart"></i> Breed
+                            </button>
+                            <button class="btn-action" onclick="alert('Sell action')">
+                                <i class="fas fa-dollar-sign"></i> Sell
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progression Modal -->
+    <div class="modal" id="progressionModal" style="display: none;">
+        <div class="modal-content modal-xlarge">
+            <div class="modal-header">
+                <h2><i class="fas fa-star"></i> Progression & Skills</h2>
+                <button class="close-btn" onclick="closeProgressionModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="progression-container">
+                    <div class="xp-section">
+                        <h3>Ranch Level <span id="progLevel">12</span></h3>
+                        <div class="xp-bar">
+                            <div class="xp-fill" id="xpBar" style="width: 65%"></div>
+                        </div>
+                        <p class="xp-text"><span id="currentXP">6,500</span> / <span id="requiredXP">10,000</span> XP</p>
+                    </div>
+                    <div class="skills-grid">
+                        <div class="skill-tree">
+                            <h3><i class="fas fa-paw"></i> Husbandry</h3>
+                            <div class="skill-list" id="husbandrySkills">
+                                <div class="skill-item">
+                                    <span class="skill-name">Basic Training</span>
+                                    <span class="skill-level">Lvl 5</span>
+                                </div>
+                                <div class="skill-item">
+                                    <span class="skill-name">Advanced Care</span>
+                                    <span class="skill-level">Lvl 3</span>
+                                </div>
+                                <div class="skill-item locked">
+                                    <span class="skill-name">Master Handler</span>
+                                    <span class="skill-level">Lvl 0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="skill-tree">
+                            <h3><i class="fas fa-syringe"></i> Veterinary</h3>
+                            <div class="skill-list" id="veterinarySkills">
+                                <div class="skill-item">
+                                    <span class="skill-name">First Aid</span>
+                                    <span class="skill-level">Lvl 4</span>
+                                </div>
+                                <div class="skill-item">
+                                    <span class="skill-name">Disease Treatment</span>
+                                    <span class="skill-level">Lvl 2</span>
+                                </div>
+                                <div class="skill-item locked">
+                                    <span class="skill-name">Surgery</span>
+                                    <span class="skill-level">Lvl 0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="skill-tree">
+                            <h3><i class="fas fa-horse-head"></i> Wrangler</h3>
+                            <div class="skill-list" id="wranglerSkills">
+                                <div class="skill-item">
+                                    <span class="skill-name">Roping</span>
+                                    <span class="skill-level">Lvl 6</span>
+                                </div>
+                                <div class="skill-item">
+                                    <span class="skill-name">Breaking</span>
+                                    <span class="skill-level">Lvl 4</span>
+                                </div>
+                                <div class="skill-item">
+                                    <span class="skill-name">Cattle Drive</span>
+                                    <span class="skill-level">Lvl 3</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="skill-tree">
+                            <h3><i class="fas fa-warehouse"></i> Teamster</h3>
+                            <div class="skill-list" id="teamsterSkills">
+                                <div class="skill-item">
+                                    <span class="skill-name">Wagon Handling</span>
+                                    <span class="skill-level">Lvl 3</span>
+                                </div>
+                                <div class="skill-item locked">
+                                    <span class="skill-name">Long Haul</span>
+                                    <span class="skill-level">Lvl 0</span>
+                                </div>
+                                <div class="skill-item locked">
+                                    <span class="skill-name">Master Trader</span>
+                                    <span class="skill-level">Lvl 0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="achievements-section">
+                        <h3><i class="fas fa-trophy"></i> Achievements</h3>
+                        <div class="achievements-grid" id="achievementsList">
+                            <div class="achievement-card">
+                                <div class="achievement-icon">
+                                    <i class="fas fa-paw"></i>
+                                </div>
+                                <div class="achievement-name">First Steps</div>
+                                <div class="achievement-desc">Purchase your first animal</div>
+                            </div>
+                            <div class="achievement-card">
+                                <div class="achievement-icon">
+                                    <i class="fas fa-horse-head"></i>
+                                </div>
+                                <div class="achievement-name">Growing Herd</div>
+                                <div class="achievement-desc">Own 10 animals</div>
+                            </div>
+                            <div class="achievement-card locked">
+                                <div class="achievement-icon">
+                                    <i class="fas fa-heart"></i>
+                                </div>
+                                <div class="achievement-name">New Life</div>
+                                <div class="achievement-desc">Birth your first animal</div>
+                            </div>
+                            <div class="achievement-card locked">
+                                <div class="achievement-icon">
+                                    <i class="fas fa-trophy"></i>
+                                </div>
+                                <div class="achievement-name">Master Breeder</div>
+                                <div class="achievement-desc">Breed 50 animals</div>
+                            </div>
+                            <div class="achievement-card">
+                                <div class="achievement-icon">
+                                    <i class="fas fa-dollar-sign"></i>
+                                </div>
+                                <div class="achievement-name">Entrepreneur</div>
+                                <div class="achievement-desc">Sell your first animal</div>
+                            </div>
+                            <div class="achievement-card locked">
+                                <div class="achievement-icon">
+                                    <i class="fas fa-coins"></i>
+                                </div>
+                                <div class="achievement-name">Wealthy Rancher</div>
+                                <div class="achievement-desc">Earn $10,000</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auction Modal -->
+    <div class="modal" id="auctionModal" style="display: none;">
+        <div class="modal-content modal-large">
+            <div class="modal-header">
+                <h2><i class="fas fa-gavel"></i> Auction House</h2>
+                <button class="close-btn" onclick="closeAuctionModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="auction-container">
+                    <div class="auction-controls">
+                        <select class="filter-select" id="auctionFilter">
+                            <option value="all">All Auctions</option>
+                            <option value="livestock">Livestock</option>
+                            <option value="equipment">Equipment</option>
+                            <option value="goods">Goods</option>
+                        </select>
+                    </div>
+                    <div class="auction-listings" id="auctionListings">
+                        <div class="auction-item">
+                            <div class="auction-header">
+                                <span class="auction-title">American Paint Horse</span>
+                                <span class="auction-timer"><i class="fas fa-clock"></i> 2h 15m</span>
+                            </div>
+                            <div class="auction-details">
+                                <div class="auction-detail-row">
+                                    <span>Seller:</span>
+                                    <span>John Doe</span>
+                                </div>
+                                <div class="auction-detail-row">
+                                    <span>Quality:</span>
+                                    <span class="quality-badge excellent">Excellent</span>
+                                </div>
+                                <div class="auction-detail-row">
+                                    <span>Current Bid:</span>
+                                    <span style="color: var(--accent-color); font-weight: 700;">$450</span>
+                                </div>
+                            </div>
+                            <div class="auction-bid">
+                                <input type="number" class="bid-input" placeholder="Your bid" value="500" />
+                                <button class="bid-btn" onclick="alert('Bid placed!')">
+                                    <i class="fas fa-gavel"></i> Bid
+                                </button>
+                            </div>
+                        </div>
+                        <div class="auction-item">
+                            <div class="auction-header">
+                                <span class="auction-title">Angus Bull</span>
+                                <span class="auction-timer"><i class="fas fa-clock"></i> 5h 30m</span>
+                            </div>
+                            <div class="auction-details">
+                                <div class="auction-detail-row">
+                                    <span>Seller:</span>
+                                    <span>Jane Smith</span>
+                                </div>
+                                <div class="auction-detail-row">
+                                    <span>Quality:</span>
+                                    <span class="quality-badge superior">Superior</span>
+                                </div>
+                                <div class="auction-detail-row">
+                                    <span>Current Bid:</span>
+                                    <span style="color: var(--accent-color); font-weight: 700;">$800</span>
+                                </div>
+                            </div>
+                            <div class="auction-bid">
+                                <input type="number" class="bid-input" placeholder="Your bid" value="850" />
+                                <button class="bid-btn" onclick="alert('Bid placed!')">
+                                    <i class="fas fa-gavel"></i> Bid
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="notification-toast" id="notificationToast" style="display: none;">
+        <i class="fas fa-info-circle" id="toastIcon"></i>
+        <span id="toastMessage">Notification</span>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script>
+        // Demo functions
+        function showUI() {
+            $('#ranchUI').fadeIn(300);
+            loadSampleData();
+        }
+        
+        function closeUI() {
+            $('#ranchUI').fadeOut(300);
+        }
+        
+        function showTab(tabName) {
+            $('.tab-btn').removeClass('active');
+            $(`.tab-btn:contains('${tabName}')`).addClass('active');
+            $('.tab-content').removeClass('active');
+            $(`#${tabName}`).addClass('active');
+        }
+        
+        function loadSampleData() {
+            // Load sample livestock
+            const livestock = [
+                { id: 1, name: 'Thunder', species: 'horse', breed: 'American Paint', health: 0.95, trust: 0.87 },
+                { id: 2, name: 'Daisy', species: 'cattle', breed: 'Angus', health: 0.88, trust: 0.75 },
+                { id: 3, name: 'Wooly', species: 'sheep', breed: 'Merino', health: 0.92, trust: 0.80 },
+                { id: 4, name: 'Spirit', species: 'horse', breed: 'Arabian', health: 0.98, trust: 0.95 },
+                { id: 5, name: 'Bessie', species: 'cattle', breed: 'Hereford', health: 0.85, trust: 0.70 },
+                { id: 6, name: 'Cluckers', species: 'chicken', breed: 'Rhode Island Red', health: 0.90, trust: 0.60 }
+            ];
+            
+            const grid = $('#livestockGrid');
+            grid.empty();
+            
+            livestock.forEach(animal => {
+                const icon = getAnimalIcon(animal.species);
+                const card = $(`
+                    <div class="livestock-card">
+                        <div class="animal-icon">
+                            <i class="${icon}"></i>
+                        </div>
+                        <h4>${animal.name}</h4>
+                        <p>Species: ${animal.species.charAt(0).toUpperCase() + animal.species.slice(1)}</p>
+                        <p>Health: ${Math.round(animal.health * 100)}%</p>
+                        <p>Trust: ${Math.round(animal.trust * 100)}%</p>
+                    </div>
+                `);
+                card.click(() => demoAnimalModal());
+                grid.append(card);
+            });
+        }
+        
+        function getAnimalIcon(species) {
+            const icons = {
+                'horse': 'fas fa-horse',
+                'cattle': 'fas fa-cow',
+                'sheep': 'fas fa-sheep',
+                'pig': 'fas fa-piggy-bank',
+                'chicken': 'fas fa-egg'
+            };
+            return icons[species] || 'fas fa-paw';
+        }
+        
+        function demoAnimalModal() {
+            $('#animalModal').fadeIn(300);
+        }
+        
+        function closeAnimalModal() {
+            $('#animalModal').fadeOut(300);
+        }
+        
+        function demoProgression() {
+            $('#progressionModal').fadeIn(300);
+        }
+        
+        function closeProgressionModal() {
+            $('#progressionModal').fadeOut(300);
+        }
+        
+        function demoAuction() {
+            $('#auctionModal').fadeIn(300);
+        }
+        
+        function closeAuctionModal() {
+            $('#auctionModal').fadeOut(300);
+        }
+        
+        function demoNotifications() {
+            const messages = [
+                { text: 'New animal born: "Little Thunder"', type: 'success' },
+                { text: 'Worker morale is low', type: 'warning' },
+                { text: 'Contract completed!', type: 'success' },
+                { text: 'Storm warning - secure animals', type: 'error' }
+            ];
+            
+            let i = 0;
+            const interval = setInterval(() => {
+                if (i >= messages.length) {
+                    clearInterval(interval);
+                    return;
+                }
+                showNotification(messages[i].text, messages[i].type);
+                i++;
+            }, 3500);
+        }
+        
+        function showNotification(message, type = 'info') {
+            const toast = $('#notificationToast');
+            const icon = $('#toastIcon');
+            const msgSpan = $('#toastMessage');
+            
+            const icons = {
+                'success': 'fa-check-circle',
+                'error': 'fa-exclamation-circle',
+                'warning': 'fa-exclamation-triangle',
+                'info': 'fa-info-circle'
+            };
+            
+            icon.removeClass().addClass('fas ' + (icons[type] || icons['info']));
+            toast.removeClass('success error warning').addClass(type);
+            msgSpan.text(message);
+            
+            toast.fadeIn(300);
+            setTimeout(() => {
+                toast.fadeOut(300);
+            }, 3000);
+        }
+        
+        // Auto-show UI on load
+        $(document).ready(function() {
+            setTimeout(() => {
+                showUI();
+            }, 500);
+        });
+    </script>
+</body>
+</html>
