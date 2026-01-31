@@ -540,7 +540,16 @@ function showHireDialog() {
 /**
  * View animal details
  */
+// Current animal ID for actions
+let currentAnimalId = null;
+
 function viewAnimalDetails(animalId) {
+    // Safety check
+    if (!ranchData.livestock) {
+        showNotification('No livestock data available', 'error');
+        return;
+    }
+    
     const animal = ranchData.livestock.find(a => a.id === animalId);
     if (!animal) return;
     
@@ -593,9 +602,6 @@ function closeAnimalModal() {
     $('#animalModal').fadeOut(300);
     currentAnimalId = null;
 }
-
-// Current animal ID for actions
-let currentAnimalId = null;
 
 /**
  * Feed animal action
@@ -853,8 +859,10 @@ function renderAuctionListings() {
 /**
  * Place bid on auction item
  */
-function placeBid(auctionId) {
-    const bidAmount = $(event.target).closest('.auction-bid').find('.bid-input').val();
+function placeBid(auctionId, event) {
+    // Get the input element from the event target or use jQuery to find it
+    const bidInput = event ? $(event.target).closest('.auction-bid').find('.bid-input') : $(`.auction-item[data-id="${auctionId}"]`).find('.bid-input');
+    const bidAmount = bidInput.val();
     
     if (!bidAmount || bidAmount <= 0) {
         showNotification('Please enter a valid bid amount', 'error');
