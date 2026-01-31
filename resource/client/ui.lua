@@ -161,6 +161,37 @@ RegisterNUICallback('getAdminLogs', function(data, cb)
     cb(logs)
 end)
 
+-- Animal action callbacks
+RegisterNUICallback('feedAnimal', function(data, cb)
+    debugPrint("Feeding animal:", data.animalId)
+    TriggerServerEvent('ranch:livestock:feed', currentRanchId, data.animalId)
+    cb('ok')
+end)
+
+RegisterNUICallback('treatAnimal', function(data, cb)
+    debugPrint("Treating animal:", data.animalId)
+    TriggerServerEvent('ranch:livestock:treat', currentRanchId, data.animalId)
+    cb('ok')
+end)
+
+RegisterNUICallback('breedAnimal', function(data, cb)
+    debugPrint("Breeding animal:", data.animalId)
+    TriggerServerEvent('ranch:livestock:breed', currentRanchId, data.animalId)
+    cb('ok')
+end)
+
+RegisterNUICallback('sellAnimal', function(data, cb)
+    debugPrint("Selling animal:", data.animalId)
+    TriggerServerEvent('ranch:livestock:sell', currentRanchId, data.animalId)
+    cb('ok')
+end)
+
+RegisterNUICallback('placeBid', function(data, cb)
+    debugPrint("Placing bid:", data.auctionId, data.amount)
+    TriggerServerEvent('ranch:auction:bid', data.auctionId, data.amount)
+    cb('ok')
+end)
+
 -- Command to open UI
 RegisterCommand('ranchui', function(source, args)
     local ranchId = args[1] or "default_ranch"
