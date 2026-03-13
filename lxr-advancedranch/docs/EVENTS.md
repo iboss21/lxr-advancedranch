@@ -8,8 +8,8 @@
 All events follow the namespace format:
 
 ```
-lxr-ranch-system:client:<action>
-lxr-ranch-system:server:<action>
+lxr-advancedranch:client:<action>
+lxr-advancedranch:server:<action>
 ```
 
 ---
@@ -18,12 +18,12 @@ lxr-ranch-system:server:<action>
 
 | Event | Arguments | Description |
 |-------|-----------|-------------|
-| `lxr-ranch-system:client:syncRanch` | `ranchId, data` | Sync ranch data to client |
-| `lxr-ranch-system:client:syncZones` | `ranchId, parcels` | Sync zone/parcel data |
-| `lxr-ranch-system:client:syncVegetation` | `zoneId, data` | Sync vegetation state |
-| `lxr-ranch-system:client:syncVegetationBulk` | `allZones` | Bulk sync all zones |
-| `lxr-ranch-system:client:syncProps` | `ranchId, props` | Sync prop placement |
-| `lxr-ranch-system:client:notify` | `message, type` | Send a notification |
+| `lxr-advancedranch:client:syncRanch` | `ranchId, data` | Sync ranch data to client |
+| `lxr-advancedranch:client:syncZones` | `ranchId, parcels` | Sync zone/parcel data |
+| `lxr-advancedranch:client:syncVegetation` | `zoneId, data` | Sync vegetation state |
+| `lxr-advancedranch:client:syncVegetationBulk` | `allZones` | Bulk sync all zones |
+| `lxr-advancedranch:client:syncProps` | `ranchId, props` | Sync prop placement |
+| `lxr-advancedranch:client:notify` | `message, type` | Send a notification |
 
 ---
 
@@ -31,10 +31,10 @@ lxr-ranch-system:server:<action>
 
 | Event | Arguments | Description |
 |-------|-----------|-------------|
-| `lxr-ranch-system:server:requestSync` | — | Request full sync from server |
-| `lxr-ranch-system:server:placeprop` | `ranchId, propData` | Place a prop on a ranch |
-| `lxr-ranch-system:server:removeProps` | `ranchId, propId` | Remove a prop |
-| `lxr-ranch-system:server:saveZone` | `zoneId, points` | Save a zone polygon |
+| `lxr-advancedranch:server:requestSync` | — | Request full sync from server |
+| `lxr-advancedranch:server:placeprop` | `ranchId, propData` | Place a prop on a ranch |
+| `lxr-advancedranch:server:removeProps` | `ranchId, propId` | Remove a prop |
+| `lxr-advancedranch:server:saveZone` | `zoneId, points` | Save a zone polygon |
 
 ---
 
@@ -52,12 +52,12 @@ lxr-ranch-system:server:<action>
 
 ```lua
 -- Listen for ranch sync (client-side)
-AddEventHandler('lxr-ranch-system:client:syncRanch', function(ranchId, data)
+AddEventHandler('lxr-advancedranch:client:syncRanch', function(ranchId, data)
     -- update your local state
 end)
 
 -- Trigger a server event (client-side)
-TriggerServerEvent('lxr-ranch-system:server:requestSync')
+TriggerServerEvent('lxr-advancedranch:server:requestSync')
 ```
 
 ---

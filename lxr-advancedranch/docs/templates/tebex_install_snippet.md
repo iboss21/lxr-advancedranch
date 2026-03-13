@@ -10,19 +10,19 @@ Paste this into your Tebex product page "Installation" tab.
 
 2. **Rename** the extracted folder to exactly:
    ```
-   lxr-ranch-system
+   lxr-advancedranch
    ```
 
 3. **Place** the folder in your `resources` directory:
    ```
-   resources/[lxr]/lxr-ranch-system/
+   resources/[lxr]/lxr-advancedranch/
    ```
 
 4. **Add** to your `server.cfg`:
    ```
-   ensure lxr-ranch-system
+   ensure lxr-advancedranch
    ```
-   > ⚠️ Your framework resource must start **before** `lxr-ranch-system`.
+   > ⚠️ Your framework resource must start **before** `lxr-advancedranch`.
 
 5. **Configure** by editing `config.lua`:
    - Set `Config.Framework` (or leave `'auto'`)

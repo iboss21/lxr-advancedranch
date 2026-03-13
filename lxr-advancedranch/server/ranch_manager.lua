@@ -14,7 +14,7 @@
 -- be bypassed by buyers or redistributors. The check runs before any logic loads.
 -- ████████████████████████████████████████████████████████████████████████████████
 
-local _REQUIRED_NAME = 'lxr-ranch-system'
+local _REQUIRED_NAME = 'lxr-advancedranch'
 local _CURRENT_NAME  = GetCurrentResourceName()
 
 if not (Config.Dev and Config.Dev.SkipNameGuard) and _CURRENT_NAME ~= _REQUIRED_NAME then

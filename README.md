@@ -86,24 +86,21 @@
 1. **Download the Resource**
    ```bash
    cd resources
-   git clone https://github.com/iboss21/Ranch-System-Mega-Features.git
+   git clone https://github.com/iboss21/lxr-advancedranch.git
    ```
 
-2. **Rename the Resource Folder**
-   ```bash
-   mv Ranch-System-Mega-Features/resource omni_ranch
-   ```
+2. **The resource folder is already named `lxr-advancedranch` — no renaming needed.**
 
 3. **Add to Server Configuration**
    
    Edit your `server.cfg` or `resources.cfg`:
    ```cfg
-   ensure omni_ranch
+   ensure lxr-advancedranch
    ```
 
 4. **Configure Permissions**
    
-   Edit `omni_ranch/shared/config.lua` to add admin identifiers:
+   Edit `lxr-advancedranch/shared/config.lua` to add admin identifiers:
    ```lua
    Config.Admin = {
        AcePermission = "ranch.admin",
@@ -364,21 +361,21 @@ To use MySQL instead of JSON:
 
 ```lua
 -- Open Ranch UI
-exports['omni_ranch']:OpenRanchUI(ranchId)
+exports['lxr-advancedranch']:OpenRanchUI(ranchId)
 
 -- Close Ranch UI
-exports['omni_ranch']:CloseRanchUI()
+exports['lxr-advancedranch']:CloseRanchUI()
 
 -- Check if UI is open
-local isOpen = exports['omni_ranch']:IsUIOpen()
+local isOpen = exports['lxr-advancedranch']:IsUIOpen()
 
 -- Get ranch data
-local zones = exports['omni_ranch']:GetRanchZones()
-local livestock = exports['omni_ranch']:GetLivestock()
-local workforce = exports['omni_ranch']:GetWorkforce()
-local economy = exports['omni_ranch']:GetEconomy()
-local environment = exports['omni_ranch']:GetEnvironment()
-local progression = exports['omni_ranch']:GetProgression()
+local zones = exports['lxr-advancedranch']:GetRanchZones()
+local livestock = exports['lxr-advancedranch']:GetLivestock()
+local workforce = exports['lxr-advancedranch']:GetWorkforce()
+local economy = exports['lxr-advancedranch']:GetEconomy()
+local environment = exports['lxr-advancedranch']:GetEnvironment()
+local progression = exports['lxr-advancedranch']:GetProgression()
 ```
 
 ### Server Events
@@ -397,7 +394,7 @@ local progression = exports['omni_ranch']:GetProgression()
 
 **Solutions:**
 1. Check console for errors: `[RanchUI] Ranch UI Client loaded successfully`
-2. Verify resource is running: `/ensure omni_ranch`
+2. Verify resource is running: `/ensure lxr-advancedranch`
 3. Check fxmanifest.lua includes all files
 4. Clear cache and restart
 
@@ -409,7 +406,7 @@ local progression = exports['omni_ranch']:GetProgression()
 1. Press `ESC` multiple times
 2. Use `/ranchui` command to toggle
 3. Check browser console (F12) for JavaScript errors
-4. Restart resource: `/restart omni_ranch`
+4. Restart resource: `/restart lxr-advancedranch`
 
 ### Missing Data in UI
 

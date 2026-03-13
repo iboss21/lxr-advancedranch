@@ -33,7 +33,7 @@ Hi [NAME],
 The error you're seeing is a resource name protection check.
 
 Your resource folder must be named exactly:
-  lxr-ranch-system
+  lxr-advancedranch
 
 Please rename the folder and restart your server.
 
@@ -52,7 +52,7 @@ Hi [NAME],
 The framework bridge could not find a running framework on your server.
 
 Please check:
-  1. Your framework resource is started BEFORE lxr-ranch-system in server.cfg
+  1. Your framework resource is started BEFORE lxr-advancedranch in server.cfg
   2. The framework resource name matches one of the supported ones (see docs/FRAMEWORKS.md)
   3. Try setting Config.Framework = 'your-framework-name' manually in config.lua
 

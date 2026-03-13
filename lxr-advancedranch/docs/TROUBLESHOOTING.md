@@ -10,11 +10,11 @@
 **Error:**
 ```
 ❌  CRITICAL: RESOURCE NAME MISMATCH  ❌
-Expected resource name : lxr-ranch-system
+Expected resource name : lxr-advancedranch
 Current resource name  : <your-folder-name>
 ```
 
-**Fix:** Rename the resource folder to exactly `lxr-ranch-system`.
+**Fix:** Rename the resource folder to exactly `lxr-advancedranch`.
 
 ---
 
@@ -27,7 +27,7 @@ No valid framework adapter found for: "..."
 ```
 
 **Fix:**
-1. Make sure your framework resource is started **before** `lxr-ranch-system`.
+1. Make sure your framework resource is started **before** `lxr-advancedranch`.
 2. Set `Config.Framework = 'standalone'` if you want to run without a framework.
 3. Check `Config.FrameworkSettings` for the correct resource name.
 
