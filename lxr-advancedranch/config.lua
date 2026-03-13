@@ -32,7 +32,7 @@
     ═══════════════════════════════════════════════════════════════════════════════
 
     Version: 1.0.0
-    Resource: lxr-ranch-system
+    Resource: lxr-advancedranch
 
     Framework Support:
     - LXR Core (Primary)

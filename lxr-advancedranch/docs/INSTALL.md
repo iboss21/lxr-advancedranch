@@ -29,7 +29,7 @@ After purchase, download the `.zip` from Tebex and extract it.
 The resource folder **must** be named exactly:
 
 ```
-lxr-ranch-system
+lxr-advancedranch
 ```
 
 > ⚠️ The server-side guard will **refuse to start** if the name is wrong.  
@@ -39,13 +39,13 @@ lxr-ranch-system
 
 ## Step 3 — Install
 
-Place the `lxr-ranch-system` folder in your server's `resources` directory:
+Place the `lxr-advancedranch` folder in your server's `resources` directory:
 
 ```
 server-data/
   resources/
     [lxr]/
-      lxr-ranch-system/   ← here
+      lxr-advancedranch/   ← here
 ```
 
 ---
@@ -53,10 +53,10 @@ server-data/
 ## Step 4 — Add to server.cfg
 
 ```cfg
-ensure lxr-ranch-system
+ensure lxr-advancedranch
 ```
 
-> Make sure your framework resource starts **before** `lxr-ranch-system`.
+> Make sure your framework resource starts **before** `lxr-advancedranch`.
 
 ---
 
