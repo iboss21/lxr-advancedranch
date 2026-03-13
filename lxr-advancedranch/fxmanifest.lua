@@ -40,6 +40,7 @@ client_scripts {
     'client/zoning.lua',
     'client/vegetation.lua',
     'client/props.lua',
+    'client/admin_menu.lua',
     'client/ui.lua'
 }
 

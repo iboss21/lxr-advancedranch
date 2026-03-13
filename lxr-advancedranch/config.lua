@@ -860,6 +860,53 @@ Config.UI = {
 }
 
 -- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ ADMIN MENU CONFIGURATION ██████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+--[[
+    Ranch Admin Menu — in-game ox_lib context menu for ranch owners and server admins.
+
+    PERMISSIONS
+    ──────────────────────────────────────────────────────────────────────────────
+    Server admin  (Config.Admin.AcePermission or Identifiers whitelist):
+        Full access to every option including create / delete / transfer / season
+        / weather / worker assignment / task creation / contract generation.
+
+    Ranch owner   (player whose identifier matches `owner` on a ranch record):
+        Can manage their own ranches: place props, create zones, add animals,
+        queue hazards, and grant XP to ranches they own.
+
+    GYZMO
+    ──────────────────────────────────────────────────────────────────────────────
+    When UseGyzmo = true and the configured GyzmoResource is started, a visual
+    3-D manipulation handle (gyzmo) is activated after a prop is spawned.
+    The player can move/rotate the prop and press ENTER to confirm or BACKSPACE
+    to cancel.  If the gyzmo resource is absent, the system falls back to
+    arrow-key controls (RotateLeft / RotateRight / ElevateUp / ElevateDown
+    defined in Config.Props) with the same confirm / cancel keys.
+]]
+
+Config.AdminMenu = {
+    -- Toggle the entire admin-menu feature on or off.
+    Enabled       = true,
+
+    -- Chat command that opens the menu.
+    Command       = 'ranchadmin',
+
+    -- Default keybind registered via RegisterKeyMapping.
+    -- Players can remap this in their GTA/RedM key bindings.
+    Keybind       = 'F6',
+
+    -- Whether to activate the gyzmo prop-placement mode when placing props.
+    -- Requires the GyzmoResource listed below to be running on the server.
+    UseGyzmo      = true,
+
+    -- Resource name of the gyzmo / prop-manipulation library.
+    -- Common values: 'gyzmo'  (mkafka/gyzmo) or 'prop_placement'
+    GyzmoResource = 'gyzmo',
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
 -- ████████████████████████ PREMIUM & EXTRAS ██████████████████████████████████████
 -- ████████████████████████████████████████████████████████████████████████████████
 
