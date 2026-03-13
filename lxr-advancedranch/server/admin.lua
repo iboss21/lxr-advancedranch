@@ -28,6 +28,86 @@ local function resolveOwnerIdentifier(source, identifierArg)
     return target
 end
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Ownership cache
+-- Populated lazily from ranches.json and kept current via create/transfer events.
+-- This avoids repeated disk reads for permission checks during a single session.
+-- ─────────────────────────────────────────────────────────────────────────────
+
+local ownershipCache    = nil   -- { [ranchId] = ownerIdentifier, ... }
+local ownershipCacheAge = 0     -- timestamp of last full reload
+
+local function refreshOwnershipCache(force)
+    local now = os.time()
+    -- Re-read from disk at most once per 60 seconds, or when forced.
+    if not force and ownershipCache and (now - ownershipCacheAge) < 60 then
+        return
+    end
+    local content = LoadResourceFile(GetCurrentResourceName(), Config.Storage.Files.Ranches)
+    if not content then
+        ownershipCache = ownershipCache or {}
+        return
+    end
+    local ok, data = pcall(json.decode, content)
+    if ok and data then
+        local fresh = {}
+        for id, ranch in pairs(data) do
+            fresh[id] = ranch.owner
+        end
+        ownershipCache    = fresh
+        ownershipCacheAge = now
+    end
+end
+
+-- Update cache immediately when a ranch is created or transferred (no disk read).
+local function cacheSetOwner(ranchId, identifier)
+    if ownershipCache then
+        ownershipCache[ranchId] = identifier
+    end
+end
+
+local function cacheRemoveRanch(ranchId)
+    if ownershipCache then
+        ownershipCache[ranchId] = nil
+    end
+end
+
+-- Check whether a player is admin OR owns the specified ranch.
+local function isAdminOrOwner(src, ranchId)
+    if Utils.IsAdmin(src) then return true end
+    local identifier = Utils.FindIdentifier(src)
+    if not identifier then return false end
+    if ranchId then
+        refreshOwnershipCache(false)
+        if ownershipCache and ownershipCache[ranchId] == identifier then
+            return true
+        end
+    end
+    return false
+end
+
+-- Return a list of { id, name } tables for every ranch owned by identifier.
+-- Ranch names are read from disk (the cache only tracks owner identifiers).
+local function getOwnedRanches(identifier)
+    if not identifier then return {} end
+    local content = LoadResourceFile(GetCurrentResourceName(), Config.Storage.Files.Ranches)
+    if not content then return {} end
+    local ok, data = pcall(json.decode, content)
+    if not ok or not data then return {} end
+    -- Also refresh the ownership cache from this read to keep it warm.
+    local fresh = {}
+    local owned = {}
+    for id, ranch in pairs(data) do
+        fresh[id] = ranch.owner
+        if ranch.owner == identifier then
+            owned[#owned + 1] = { id = id, name = ranch.name or id }
+        end
+    end
+    ownershipCache    = fresh
+    ownershipCacheAge = os.time()
+    return owned
+end
+
 RegisterCommand("ranchcreate", function(source, args)
     if not ensureAdmin(source) then return end
     local name = args[1]
@@ -187,6 +267,146 @@ RegisterCommand("ranchxp", function(source, args)
     TriggerClientEvent("chat:addMessage", source, { args = { "Ranch", ("Ranch %s now level %s"):format(ranchId, level) } })
 end, false)
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Net Events — Admin Menu (mirrors every command above for menu-driven access)
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- Permissions query: returns admin flag + list of owned ranches to the caller.
+RegisterNetEvent("ranch:admin:getPermissions", function()
+    local src        = source
+    local admin      = Utils.IsAdmin(src)
+    local identifier = Utils.FindIdentifier(src)
+    local owned      = getOwnedRanches(identifier)
+    TriggerClientEvent("ranch:admin:permissions", src, admin, owned)
+end)
+
+RegisterNetEvent("ranch:admin:create", function(name, ownerIdentifier)
+    local src = source
+    if not ensureAdmin(src) then return end
+    if not name or name == "" then return end
+    local identifier = (ownerIdentifier and ownerIdentifier ~= "") and ownerIdentifier or Utils.FindIdentifier(src)
+    local ranch, err = RanchManager.CreateRanch(name, identifier)
+    if ranch then
+        -- Keep ownership cache current without waiting for the next disk refresh.
+        cacheSetOwner(ranch.id, identifier)
+        TriggerClientEvent("chat:addMessage", src, { args = { "Ranch", ("Created ranch %s (%s)"):format(ranch.name, ranch.id) } })
+    else
+        TriggerClientEvent("chat:addMessage", src, { args = { "Ranch", err or "Failed to create ranch." } })
+    end
+end)
+
+RegisterNetEvent("ranch:admin:delete", function(id)
+    local src = source
+    if not ensureAdmin(src) then return end
+    if not id or id == "" then return end
+    local success, err = RanchManager.DeleteRanch(id)
+    if success then cacheRemoveRanch(id) end
+    TriggerClientEvent("chat:addMessage", src, { args = { "Ranch", success and ("Deleted ranch %s"):format(id) or err } })
+end)
+
+RegisterNetEvent("ranch:admin:transfer", function(id, identifier)
+    local src = source
+    if not ensureAdmin(src) then return end
+    if not id or id == "" or not identifier or identifier == "" then return end
+    local success, result = RanchManager.TransferOwnership(id, identifier)
+    if success then cacheSetOwner(id, identifier) end
+    TriggerClientEvent("chat:addMessage", src, { args = { "Ranch", success and ("Transferred %s to %s"):format(id, identifier) or result } })
+end)
+
+RegisterNetEvent("ranch:admin:setSeason", function(season)
+    local src = source
+    if not ensureAdmin(src) then return end
+    if not season or season == "" then return end
+    local success, err = Environment.SetSeason(season)
+    TriggerClientEvent("chat:addMessage", src, { args = { "Ranch", success and ("Season set to %s"):format(season) or err } })
+end)
+
+RegisterNetEvent("ranch:admin:rollWeather", function()
+    local src = source
+    if not ensureAdmin(src) then return end
+    Environment.RollWeather()
+    TriggerClientEvent("chat:addMessage", src, { args = { "Ranch", "Weather pattern rolled." } })
+end)
+
+-- Accessible by server admins AND owners (for their own ranch).
+RegisterNetEvent("ranch:admin:queueHazard", function(hazard, ranchId)
+    local src = source
+    if not isAdminOrOwner(src, ranchId) then
+        TriggerClientEvent("chat:addMessage", src, { args = { "Ranch", "You do not have permission." } })
+        return
+    end
+    if not hazard or hazard == "" then return end
+    local success, err = Environment.QueueHazard(hazard, { ranchId = ranchId, manual = true })
+    TriggerClientEvent("chat:addMessage", src, { args = { "Ranch", success and ("Hazard %s queued."):format(hazard) or err } })
+end)
+
+-- Accessible by server admins AND owners (for their own ranch).
+RegisterNetEvent("ranch:admin:addAnimal", function(ranchId, species, count)
+    local src = source
+    if not isAdminOrOwner(src, ranchId) then
+        TriggerClientEvent("chat:addMessage", src, { args = { "Ranch", "You do not have permission." } })
+        return
+    end
+    if not ranchId or ranchId == "" or not species or species == "" then return end
+    -- Clamp to a sane batch limit to prevent server overload from malicious calls.
+    count = math.max(1, math.min(tonumber(count) or 1, 99))
+    local created = 0
+    for _ = 1, count do
+        local ok = Livestock.RegisterAnimal(ranchId, species, {})
+        if ok then created = created + 1 end
+    end
+    TriggerClientEvent("chat:addMessage", src, { args = { "Ranch", ("Added %s %s to %s"):format(created, species, ranchId) } })
+end)
+
+RegisterNetEvent("ranch:admin:deleteAnimal", function(ranchId, animalId)
+    local src = source
+    if not ensureAdmin(src) then return end
+    if not ranchId or not animalId then return end
+    local success, err = Livestock.RemoveAnimal(ranchId, animalId)
+    TriggerClientEvent("chat:addMessage", src, { args = { "Ranch", success and ("Removed %s"):format(animalId) or err } })
+end)
+
+-- Accessible by server admins AND owners (for their own ranch).
+RegisterNetEvent("ranch:admin:grantXP", function(ranchId, amount)
+    local src = source
+    if not isAdminOrOwner(src, ranchId) then
+        TriggerClientEvent("chat:addMessage", src, { args = { "Ranch", "You do not have permission." } })
+        return
+    end
+    if not ranchId or ranchId == "" then return end
+    amount = tonumber(amount)
+    if not amount or amount <= 0 then return end
+    local level = Progression.AddXP(ranchId, amount, "admin grant")
+    TriggerClientEvent("chat:addMessage", src, { args = { "Ranch", ("Ranch %s now level %s"):format(ranchId, level) } })
+end)
+
+RegisterNetEvent("ranch:admin:assignWorker", function(ranchId, identifier, role)
+    local src = source
+    if not ensureAdmin(src) then return end
+    if not ranchId or ranchId == "" or not identifier or identifier == "" or not role or role == "" then return end
+    Workforce.AssignWorker(ranchId, Utils.NormalizeIdentifier(identifier) or identifier, role)
+    TriggerClientEvent("chat:addMessage", src, { args = { "Ranch", "Worker assigned." } })
+end)
+
+RegisterNetEvent("ranch:admin:createTask", function(ranchId, taskType)
+    local src = source
+    if not ensureAdmin(src) then return end
+    if not ranchId or ranchId == "" or not taskType or taskType == "" then return end
+    local success, err = Workforce.CreateTask(ranchId, taskType, {})
+    TriggerClientEvent("chat:addMessage", src, { args = { "Ranch", success and ("Task %s created"):format(taskType) or err } })
+end)
+
+RegisterNetEvent("ranch:admin:generateContract", function()
+    local src = source
+    if not ensureAdmin(src) then return end
+    local contract = Economy.GenerateContract()
+    TriggerClientEvent("chat:addMessage", src, { args = { "Ranch", ("Generated contract %s for %s"):format(contract.id, contract.town) } })
+end)
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Existing zone / prop net events
+-- ─────────────────────────────────────────────────────────────────────────────
+
 RegisterNetEvent("ranch:zones:save", function(zoneId, payload)
     if not ensureAdmin(source) then return end
     RanchManager.SaveVegetation(zoneId, payload)
@@ -197,10 +417,15 @@ RegisterNetEvent("ranch:zones:assign", function(zoneId, ranchId)
     RanchManager.AssignZone(zoneId, ranchId)
 end)
 
+-- Props can be saved by server admins OR by the owner of the target ranch.
 RegisterNetEvent("ranch:props:save", function(ranchId, props)
-    if not ensureAdmin(source) then return end
-    local ranch = RanchManager.GetOrCreate(ranchId)
-    ranch.props = props
+    local src = source
+    if not isAdminOrOwner(src, ranchId) then
+        TriggerClientEvent("chat:addMessage", src, { args = { "Ranch", "You do not have permission to place props on this ranch." } })
+        return
+    end
+    local ranch  = RanchManager.GetOrCreate(ranchId)
+    ranch.props  = props
     TriggerClientEvent("ranch:props:update", -1, ranchId, props)
 end)
 
