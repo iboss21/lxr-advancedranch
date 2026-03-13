@@ -1,3 +1,45 @@
+--[[
+    ═══════════════════════════════════════════════════════════════════════════════
+    🐺 LXR Ranch System — Server Core (ESCROW PROTECTED)
+    ═══════════════════════════════════════════════════════════════════════════════
+    wolves.land — The Land of Wolves
+    © 2026 iBoss21 / The Lux Empire | All Rights Reserved
+    ═══════════════════════════════════════════════════════════════════════════════
+]]
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ RESOURCE NAME GUARD ███████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+-- This protection lives in server-side escrow-encrypted code so that it cannot
+-- be bypassed by buyers or redistributors. The check runs before any logic loads.
+-- ████████████████████████████████████████████████████████████████████████████████
+
+local _REQUIRED_NAME = 'lxr-ranch-system'
+local _CURRENT_NAME  = GetCurrentResourceName()
+
+if not (Config.Dev and Config.Dev.SkipNameGuard) and _CURRENT_NAME ~= _REQUIRED_NAME then
+    error(string.format(
+        '\n\n' ..
+        '═══════════════════════════════════════════════════════════════════════════════\n' ..
+        '❌  CRITICAL: RESOURCE NAME MISMATCH  ❌\n' ..
+        '═══════════════════════════════════════════════════════════════════════════════\n' ..
+        '\n' ..
+        '  Expected resource name : %s\n' ..
+        '  Current resource name  : %s\n' ..
+        '\n' ..
+        '  This resource is escrow-protected and must keep its original name.\n' ..
+        '  Rename the resource folder to "%s" and restart.\n' ..
+        '\n' ..
+        '  🐺 wolves.land — The Land of Wolves\n' ..
+        '  © 2026 iBoss21 / The Lux Empire | All Rights Reserved\n' ..
+        '\n' ..
+        '═══════════════════════════════════════════════════════════════════════════════\n',
+        _REQUIRED_NAME, _CURRENT_NAME, _REQUIRED_NAME
+    ))
+end
+
+-- ████████████████████████████████████████████████████████████████████████████████
+
 local Config = require("shared.config")
 local Utils = require("shared.utils")
 local Storage = require("server.storage")

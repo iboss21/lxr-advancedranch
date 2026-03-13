@@ -1,0 +1,43 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# 🐺 LXR Ranch System — .gitignore
+# wolves.land — The Land of Wolves
+# © 2026 iBoss21 / The Lux Empire | All Rights Reserved
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# Runtime & cache
+logs/
+cache/
+*.log
+
+# Node / tooling
+node_modules/
+.npm/
+
+# IDE
+.idea/
+.vscode/
+*.suo
+*.user
+
+# Build artifacts
+build/
+dist/
+out/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Tebex escrow output — never ship raw protected code outside escrow
+*.escrow
+*.enc
+
+# Local server data (do not commit runtime state)
+data/ranches.json
+data/animals.json
+data/workforce.json
+data/production.json
+data/environment.json
+data/economy.json
+data/progression.json
