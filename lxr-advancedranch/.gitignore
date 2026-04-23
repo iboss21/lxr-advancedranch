@@ -1,43 +1,64 @@
 # ═══════════════════════════════════════════════════════════════════════════════
-# 🐺 LXR Ranch System — .gitignore
-# wolves.land — The Land of Wolves
-# © 2026 iBoss21 / The Lux Empire | All Rights Reserved
+# 🐺 lxr-advancedranch — .gitignore
+# © 2026 iBoss21 / The Lux Empire | wolves.land
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Runtime & cache
-logs/
-cache/
+# JSON fallback store
+data/
+*.json.bak
+
+# Logs
 *.log
+logs/
+debug.log
+error.log
 
-# Node / tooling
-node_modules/
-.npm/
+# OS detritus
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+.nfs*
 
-# IDE
-.idea/
+# Editor / IDE
 .vscode/
-*.suo
-*.user
+.idea/
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
 
-# Build artifacts
+# Build artifacts / Tebex packaging
+*.zip
+!lxr-advancedranch.zip
 build/
 dist/
 out/
 
-# OS artifacts
-.DS_Store
-Thumbs.db
-desktop.ini
+# Local env / secrets
+.env
+.env.local
+.env.*.local
+secrets.txt
+*.key
+*.pem
 
-# Tebex escrow output — never ship raw protected code outside escrow
-*.escrow
-*.enc
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.orig
 
-# Local server data (do not commit runtime state)
-data/ranches.json
-data/animals.json
-data/workforce.json
-data/production.json
-data/environment.json
-data/economy.json
-data/progression.json
+# Node (NUI dev if anyone wires one up)
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# FXServer cache (if repo is checked out inside resources/)
+cache/
+crashes/

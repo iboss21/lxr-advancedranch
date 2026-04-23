@@ -1,73 +1,148 @@
-# 🐺 LXR Ranch System — Events Reference
+# 🐺 Events & Exports Reference — lxr-advancedranch
 
-> **wolves.land — The Land of Wolves**  
-> © 2026 iBoss21 / The Lux Empire | All Rights Reserved
-
----
-
-All events follow the namespace format:
-
-```
-lxr-advancedranch:client:<action>
-lxr-advancedranch:server:<action>
-```
+All event names are auto-namespaced via `RanchCore.EventName(scope, name)` which resolves to `lxr-advancedranch:<scope>:<name>`. If you rename the resource (you shouldn't — the guard will refuse to boot), update `Config.Security.resourceNameGuard` and `EXPECTED_NAME` accordingly.
 
 ---
 
-## Server → Client Events
+## Client → Server (`NetEvent`)
 
-| Event | Arguments | Description |
-|-------|-----------|-------------|
-| `lxr-advancedranch:client:syncRanch` | `ranchId, data` | Sync ranch data to client |
-| `lxr-advancedranch:client:syncZones` | `ranchId, parcels` | Sync zone/parcel data |
-| `lxr-advancedranch:client:syncVegetation` | `zoneId, data` | Sync vegetation state |
-| `lxr-advancedranch:client:syncVegetationBulk` | `allZones` | Bulk sync all zones |
-| `lxr-advancedranch:client:syncProps` | `ranchId, props` | Sync prop placement |
-| `lxr-advancedranch:client:notify` | `message, type` | Send a notification |
+Registered in `sv_main.lua`, `sv_livestock.lua`, `sv_economy.lua`, `sv_progression.lua`, `sv_admin.lua`. Every handler validates `source` via the `authPlayerOnRanch` helper where ranch membership is required.
 
----
-
-## Client → Server Events
-
-| Event | Arguments | Description |
-|-------|-----------|-------------|
-| `lxr-advancedranch:server:requestSync` | — | Request full sync from server |
-| `lxr-advancedranch:server:placeprop` | `ranchId, propData` | Place a prop on a ranch |
-| `lxr-advancedranch:server:removeProps` | `ranchId, propId` | Remove a prop |
-| `lxr-advancedranch:server:saveZone` | `zoneId, points` | Save a zone polygon |
+| Event | Payload | Purpose |
+|-------|---------|---------|
+| `client:requestBootstrap` | `{}` | Initial data pull on player spawn — ranches, environment, personal progression. |
+| `client:requestUIData` | `{ tab = 'dashboard' | ... }` | Tab-scoped dashboard pull. Rate-limited per player. |
+| `client:interactAnimal` | `{ animalId, action = 'feed'|'water'|'groom'|'milk'|'shear'|'slaughter' }` | Server-authoritative animal interaction. Updates needs, awards XP, yields items. |
+| `client:breedAnimals` | `{ ranchId, aId, bId }` | Lock a breeding pair if cooldown, sex, and species checks pass. |
+| `client:acceptContract` | `{ contractId }` | Player accepts an open town-board contract. |
+| `client:deliverContract` | `{ contractId }` | Player turns in goods at the contract's town. Validates inventory, pays out. |
+| `client:createAuction` | `{ ranchId, lotType, lotRef, startBid }` | Opens a new auction lot (escrowed in DB row). |
+| `client:placeBid` | `{ auctionId, amount }` | Raises the current bid; refunds the prior high bidder. |
+| `client:startProduction` | `{ chainKey }` | Starts a production batch; deducts inputs, schedules completion. |
+| `client:zoneSaved` | `{ ranchId, zoneType, vertices }` | Commits a polygon zone after `/pzsave`. |
+| `client:propPlaced` | `{ ranchId, model, x, y, z, heading }` | Registers a placed prop. |
 
 ---
 
-## Server-Side Events
+## Server → Client (broadcast or per-source)
 
-| Event | Arguments | Description |
-|-------|-----------|-------------|
-| `ranch:ownershipChanged` | `ranchId, newOwner` | Fires when ownership is transferred |
-| `ranch:ranchCreated` | `ranchId, data` | Fires when a new ranch is created |
-| `ranch:ranchDeleted` | `ranchId` | Fires when a ranch is deleted |
+Emitted via `RanchCore.Broadcast(...)` for global updates and `TriggerClientEvent` for per-source payloads.
+
+### Bootstrap & Ranch Lifecycle
+
+| Event | Payload | Recipients |
+|-------|---------|------------|
+| `server:bootstrap` | `{ ranches, env, tierLabels, gameplayFlags }` | The requesting source. |
+| `server:ranchAdded` | `{ ranch }` | All. |
+| `server:ranchDeleted` | `{ ranchId }` | All. |
+
+### Livestock
+
+| Event | Payload |
+|-------|---------|
+| `server:animalAdded` | `{ animal }` |
+| `server:animalRemoved` | `{ id, ranchId, reason }` |
+| `server:animalUpdated` | `{ animal }` |
+| `server:animalBred` | `{ motherId, fatherId, dueAt }` |
+
+### Workforce
+
+| Event | Payload |
+|-------|---------|
+| `server:workerHired` | `{ ranchId, worker }` |
+| `server:workerFired` | `{ ranchId, identifier }` |
+| `server:workerRoleChanged` | `{ ranchId, identifier, role }` |
+
+### Economy
+
+| Event | Payload |
+|-------|---------|
+| `server:contractUpdated` | `{ contract }` |
+| `server:contractsRefreshed` | `{ town }` |
+| `server:auctionCreated` | `{ auction }` |
+| `server:auctionUpdated` | `{ auction }` |
+| `server:auctionSettled` | `{ auctionId, status, winner, amount }` |
+
+### Environment
+
+| Event | Payload |
+|-------|---------|
+| `server:seasonChanged` | `{ season, temp }` |
+| `server:weatherChanged` | `{ weather, temp }` |
+| `server:hazardTriggered` | `{ ranchId, hazardKey, label, damage }` |
+
+### Progression
+
+| Event | Payload |
+|-------|---------|
+| `server:xpGained` | `{ skill, amount, total, level }` |
+| `server:achievement` | `{ key, def }` |
+
+### NUI / Tab Router
+
+| Event | Payload |
+|-------|---------|
+| `server:uiData` | `{ tab, data, error? }` — reply to `requestUIData`. |
+
+### Zoning & Props
+
+| Event | Payload |
+|-------|---------|
+| `server:zoneEditorStart` | `{ zoneType }` — triggered by `/pzcreate`. |
+| `server:zoneEditorSave` | `{}` — triggered by `/pzsave`. |
+| `server:zoneEditorCancel` | `{}` — triggered by `/pzcancel`. |
+| `server:zoneAdded` | `{ zone }` |
+| `server:propEditorStart` | `{ model, ranchId }` — triggered by `/ranchprop`. |
+| `server:propEditorDelete` | `{ propId? }` — triggered by `/ranchpropdel`. |
+| `server:propAdded` | `{ prop }` |
 
 ---
 
-## Usage Example
+## Exports
+
+Registered in `cl_main.lua`, `cl_ui.lua`, `sv_progression.lua`.
+
+### Client
+
+| Export | Signature | Returns |
+|--------|-----------|---------|
+| `GetRanchId()` | — | string or `nil` — the ranch the player is currently inside. |
+| `GetRanches()` | — | table — all known ranches (cached). |
+| `GetEnvironment()` | — | table — `{ season, weather, temp, season_started }`. |
+| `IsInsideAnyRanch()` | — | boolean. |
+| `GetCurrentRanch()` | — | table or `nil` — full ranch entity. |
+| `OpenRanchUI(tab?)` | optional tab string | — opens the NUI on the given tab (default `Config.UI.defaultTab`). |
+| `CloseRanchUI()` | — | closes the NUI. |
+| `IsUIOpen()` | — | boolean. |
+
+### Server
+
+| Export | Signature | Returns |
+|--------|-----------|---------|
+| `InheritLegacy(fromIdent, toIdent)` | two identifiers | boolean — migrates XP and stats at `Config.Progression.legacySystem.xpPct` and `.itemPct`. |
+| `GetRanch(ranchId)` | string | table or `nil`. |
+| `GetRanchesOwnedBy(identifier)` | string | array. |
+| `AddXp(identifier, skill, amount)` | — | new level. |
+| `GetSkillLevel(identifier, skill)` | — | integer. |
+
+---
+
+## Extending
+
+To hook into the resource from another script:
 
 ```lua
--- Listen for ranch sync (client-side)
-AddEventHandler('lxr-advancedranch:client:syncRanch', function(ranchId, data)
-    -- update your local state
+-- example: trigger a cutscene when a player wins their first legendary auction
+AddEventHandler('lxr-advancedranch:server:auctionSettled', function(payload)
+    if payload.status == 'sold' then
+        -- payload = { auctionId, status, winner, amount, lot_type, lot_ref }
+        TriggerClientEvent('my-cutscenes:legendaryWin', payload.winner)
+    end
 end)
-
--- Trigger a server event (client-side)
-TriggerServerEvent('lxr-advancedranch:server:requestSync')
 ```
 
----
-
-## Notes
-
-- The server **never trusts** client event data without validation.
-- All server events include rate limiting and sanity checks.
-- Do not register handlers on these events unless you are extending the system.
+The resource is open at the event boundary by design — everything a third-party script needs is broadcast. Don't touch the DB directly; if you need a query, write your own with its own table prefix.
 
 ---
 
-*🐺 wolves.land — The Land of Wolves*
+© 2026 iBoss21 / The Lux Empire · **wolves.land** · All Rights Reserved

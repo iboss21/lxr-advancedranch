@@ -1,137 +1,120 @@
-# 🐺 LXR Ranch System — Configuration Reference
+# 🐺 Configuration Reference — lxr-advancedranch
 
-> **wolves.land — The Land of Wolves**  
-> © 2026 iBoss21 / The Lux Empire | All Rights Reserved
-
----
-
-All buyer-tunable settings are in `config.lua` at the root of the resource.  
-**Do not edit** files in `client/`, `server/`, or `shared/` — they are escrow-protected.
+> Every tunable value lives in `config.lua`. This document walks each section end-to-end.
 
 ---
 
-## Config.ServerInfo
+## `Config.General`
 
-Branding fields shown in logs and notifications.
+- `autoSaveInterval` — milliseconds between dirty-flag flushes. Default 300000 (5 min). Lower values hit the DB harder; higher values risk more data loss on crash.
+- `ownerOnlyUI` — if `true`, non-owners and non-staff cannot open the NUI on a ranch. Admins always can.
 
-| Key | Type | Description |
-|-----|------|-------------|
-| `name` | string | Server display name |
-| `tagline` | string | Server tagline |
-| `website` | string | Server website URL |
-| `discord` | string | Discord invite link |
+## `Config.Framework`
 
----
+Either `'auto'` (detects on boot) or a specific framework key: `'lxr-core'`, `'rsg-core'`, `'vorp-core'`, `'redem-rp'`, `'qbr-core'`, `'qr-core'`, `'standalone'`.
 
-## Config.Framework
+## `Config.Locale`
 
-```lua
-Config.Framework = 'auto'
-```
+Inline English and Georgian key tables. For overrides, edit `locales/en.lua` or `locales/ka.lua` — `Locales[lang][key]` wins over `Config.Locale[lang][key]`.
 
-| Value | Description |
-|-------|-------------|
-| `'auto'` | Auto-detects framework at startup (recommended) |
-| `'lxr-core'` | Force LXR Core |
-| `'rsg-core'` | Force RSG Core |
-| `'vorp_core'` | Force VORP Core |
-| `'redem_roleplay'` | Force RedEM:RP |
-| `'qbr-core'` | Force QBR Core |
-| `'qr-core'` | Force QR Core |
-| `'standalone'` | No framework (minimal functionality) |
+## `Config.Keys`
 
----
+- `openUI` / `closeUI` — control hashes for raw `IsControlJustReleased` checks.
+- `mapOpenUI` — the `RegisterKeyMapping` fallback (default `F5`). Players can rebind in FiveM/RedM settings.
 
-## Config.Debug / Config.Dev
+## `Config.Livestock`
 
-```lua
-Config.Debug = false        -- enable debug prints
-Config.Dev.SkipNameGuard = false  -- ⚠ NEVER true in production
-```
+Per-species dictionary. Key fields:
 
----
+| Field | Meaning |
+|-------|---------|
+| `needsDecay` | table with `hunger`, `thirst`, `cleanliness` decay per livestock tick |
+| `breedingCooldownHours` | real hours between breedings |
+| `gestationHours` | real hours from breed to birth |
+| `litterMin` / `litterMax` | offspring count range |
+| `lifespanDays` | age at which an animal dies of old age |
+| `adultAgeDays` | age at which breeding becomes possible |
+| `products` | array of item keys this species yields (e.g. `{'milk_jug','rawbeef','leather'}`) |
 
-## Config.Admin
+## `Config.Breeding`
 
-```lua
-Config.Admin = {
-    AcePermission = 'ranch.admin',
-    Identifiers   = {},
-    AllowConsole  = true
-}
-```
+- `possibleTraits` — all traits the system can roll (e.g. `'hardy'`, `'fast_gainer'`, `'high_yield'`, `'docile'`).
+- `traitBonus` — per-trait modifier table. Recognized keys: `needsDecayMult` (scales decay rate, 0.85 = 15% slower), `sellPriceMult`, `breedChanceMult`, `offspringHealthBonus`.
 
-Add your identifier to `Identifiers` for direct admin access without ace permissions.
+## `Config.Workforce`
 
----
+- `paydayIntervalHours` — real hours between automatic payouts. The payday ticker runs every 10 min; each worker is paid only when `(now - last_paid) >= intervalSec`.
+- `roles` — per-role definition. `wage` is the base pay; the actual payment is scaled from 0.75× at zero morale to 1.25× at 100 morale.
+- Permission flags on roles: `canHire`, `canFire`, `canAssign`, `canUpgrade`, `canSellAnimal`, `canBuyAnimal`. Used by `RanchCore.WorkerCan(ranchId, ident, capability)`.
 
-## Config.Discord
+## `Config.Discord`
 
-```lua
-Config.Discord = {
-    BotToken    = '',   -- Discord bot token
-    GuildId     = '',   -- Guild (server) ID
-    WebhookUrl  = ''    -- Webhook URL for alerts
-}
-```
+Master switch `enabled`. `webhookUrl` drives audit notifications. `syncRolesToWorkforce` enables role-mirroring (requires an external bot fetch — the mapping table is authoritative once role IDs are loaded into `RanchCore._DiscordRoleCache`).
 
----
+## `Config.Environment`
 
-## Config.Ranches
+- `seasonLengthMinutes` — real minutes per season. Default 120. Lower for rapid test cycles.
+- `weatherCycleMinutes` — how often weather rolls against the season's `weatherBias` distribution.
+- `hazards.<key>` — each has `chance` (per weather roll), `damage` (livestock/pasture/structure), `allowedWeather` (only fires during these weather types).
+- `soil` — global fertility defaults and per-tick regrowth rate.
+- `wildlife.predatorAttackChance` — per-ranch attack probability per wildlife tick (every 15 min).
 
-| Key | Default | Description |
-|-----|---------|-------------|
-| `MaxPerPlayer` | `4` | Max ranches per player |
-| `ExpansionCostPerAcre` | `125` | Cost per acre expansion |
-| `MergeCooldownHours` | `12` | Hours between ranch merges |
+## `Config.Economy`
 
----
+- `baseDemand` — multiplier applied before seasonal modifiers.
+- `seasonalModifiers` — per-season, per-good price multiplier. The final price = `base × seasonal × demand`, clamped to `[minPriceClamp, maxPriceClamp]`.
+- `townBoards` — each board defines location (`coords`, `heading`) and available goods. Contracts reroll on `contracts.rerollMinutes` (default 60).
+- `auctions.houseCutPct` — auction house fee skimmed from the winning bid before payout.
+- `productionChains` — input → output with `timeMinutes` duration and `xpPerBatch` reward.
 
-## Config.Livestock
+## `Config.Progression`
 
-Controls animal species, needs decay, breeding thresholds, and trust values.
+- `xpCurveBase` / `xpCurveExponent` — `xpToLevel(n) = base × n^exp`. With defaults (100, 1.35), level 10 ≈ 2,400 XP, level 50 ≈ 67,000 XP, level 100 ≈ 510,000 XP (cumulative).
+- `skills.<name>.bonuses` — table of `[levelThreshold] = 'description'`. Gameplay effects are wired in-code for `needsDecayMult` etc.; the description drives UI and Discord announcements.
+- `xpGains` — lookup table; action keys map to the `AddXp` amount.
+- `achievements` — stat-driven. `requirement` is a table of stat thresholds; once all are met, the achievement unlocks and `reward` cash is granted.
+- `legacySystem` — on character creation, call `exports['lxr-advancedranch']:InheritLegacy(fromIdent, toIdent)` to carry over XP and stats at the configured percentage.
 
-```lua
-Config.Livestock.NeedsTickMinutes = 15   -- how often needs decay
-Config.Livestock.TrustThresholds  = { hostile=0.2, wary=0.45, calm=0.7, bonded=0.9 }
-```
+## `Config.Ranches`
 
----
+- `seeds` — inserted on first boot. Each entry gets a stable ID matching the table key.
+- `tiers` — caps per tier (`maxAnimals`, `maxWorkers`, `maxProps`) and the cash cost to upgrade. The top tier has `upgradeCost = nil` (terminal).
 
-## Config.Economy
+## `Config.Zoning`
 
-```lua
-Config.Economy.DynamicPricing    -- base demand & seasonal modifiers
-Config.Economy.Contracts.maxActive = 5
-Config.Economy.Auctions.enable    = true
-```
+Polygon zone parameters. `maxVerticesPerZone` is enforced client-side during editing. `zoneTypes` is used for the editor dropdown — extend freely.
 
----
+## `Config.Props`
 
-## Config.Environment
+`whitelistedModels` is the hard allowlist. Any model not in this list is rejected server-side even if a client forges the NUI call.
 
-```lua
-Config.Environment.SeasonLengthMinutes = 120   -- real-time minutes per season
-```
+## `Config.UI`
 
----
+- `defaultTab` — which tab opens first. One of `'dashboard'`, `'livestock'`, `'workforce'`, `'economy'`, `'environment'`, `'progression'`, `'auction'`.
+- `theme.primaryAccent` — gold hex. Match to your server branding if you rebrand (remember: this is a Lux Empire / wolves.land product; aesthetic rebranding beyond accent color requires a license extension).
+- `feedMaxEntries` — activity feed buffer size in the dashboard.
 
-## Config.Workforce
+## `Config.Admin`
 
-```lua
-Config.Workforce.DailyWageBase   = 8
-Config.Workforce.EnableAIHands   = true
-```
+- `acePermission` — ACE key admins must have. Default `'ranch.admin'`.
+- `identifiers` — explicit allowlist by license/discord ID, useful for servers that don't use ACE groups.
+
+## `Config.Database`
+
+- `mode` — `'mysql'` or `'json'`.
+- `prefix` — table prefix. Change ONLY before first boot or follow a manual migration.
+- `autoMigrate` — creates tables on boot if missing.
+
+## `Config.Security`
+
+- `resourceNameGuard` — must match the resource folder name exactly.
+- `kickOnNameMismatch` — refuse to start if the folder is renamed. Keep `true` in production.
+- `nuiDataRateLimit` — max NUI pulls per minute per player. Reduce on high-concurrency servers.
+
+## `Config.Performance`
+
+Caching and tick intervals. The defaults are tuned for 150+ concurrent players on a single FXServer instance. See comments in `config.lua` for per-field guidance.
 
 ---
 
-## Config.Progression
-
-```lua
-Config.Progression.LevelThresholds = { 0, 200, 500, 900, 1400, 2000 }
-Config.Progression.XPPerContract   = 50
-```
-
----
-
-*🐺 wolves.land — The Land of Wolves*
+© 2026 iBoss21 / The Lux Empire · **wolves.land** · All Rights Reserved

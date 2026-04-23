@@ -1,107 +1,156 @@
-# 🐺 LXR Ranch System — Installation Guide
+# 🐺 Installation Guide — lxr-advancedranch
 
-> **wolves.land — The Land of Wolves**  
-> © 2026 iBoss21 / The Lux Empire | All Rights Reserved
-
----
-
-## Requirements
-
-| Dependency | Version | Notes |
-|------------|---------|-------|
-| RedM / FiveM | Latest | RedM (rdr3) only |
-| Framework | Any supported | See FRAMEWORKS.md |
-| Lua 5.4 | Included | `lua54 'yes'` required |
+> **Developer:** iBoss21 / The Lux Empire · [wolves.land](https://www.wolves.land) · [Discord](https://discord.gg/CrKcWdfd3A)
 
 ---
 
-## Step 1 — Download & Extract
+## Prerequisites
 
-Purchase the resource from the Tebex store:  
-**https://theluxempire.tebex.io**
-
-After purchase, download the `.zip` from Tebex and extract it.
+- RedM server running FXServer artifact **5848+**
+- Database: **MariaDB 10.4+** or **MySQL 8+** (JSON mode works for dev/standalone)
+- [**oxmysql**](https://github.com/overextended/oxmysql) (not required for JSON mode)
+- A supported framework (or `standalone`):
+  - LXR Core · RSG Core · VORP Core · RedEM:RP · QBR Core · QR Core
 
 ---
 
-## Step 2 — Rename the Resource Folder
+## Step 1 — Drop the Resource
 
-The resource folder **must** be named exactly:
+Unzip `lxr-advancedranch.zip` into your server's `resources/` folder. Confirm the folder is named **exactly** `lxr-advancedranch` — the resource guard will refuse to start if the folder is renamed (this prevents leaks from being redeployed).
 
 ```
-lxr-advancedranch
-```
-
-> ⚠️ The server-side guard will **refuse to start** if the name is wrong.  
-> This is intentional and cannot be bypassed.
-
----
-
-## Step 3 — Install
-
-Place the `lxr-advancedranch` folder in your server's `resources` directory:
-
-```
-server-data/
-  resources/
-    [lxr]/
-      lxr-advancedranch/   ← here
+resources/
+└── lxr-advancedranch/
+    ├── fxmanifest.lua
+    ├── config.lua
+    ├── client/
+    ├── server/
+    ├── shared/
+    ├── html/
+    ├── locales/
+    ├── docs/
+    └── sql/
 ```
 
 ---
 
-## Step 4 — Add to server.cfg
+## Step 2 — Database
+
+### Option A: Automatic (recommended)
+
+Set these defaults in `config.lua`:
+
+```lua
+Config.Database = {
+    mode             = 'mysql',
+    prefix           = 'lxr_ranch_',
+    autoMigrate      = true,
+    ...
+}
+```
+
+Ensure `oxmysql` is running **before** `lxr-advancedranch` in `server.cfg`. All tables are created on first boot.
+
+### Option B: Manual
+
+Set `autoMigrate = false` and import `sql/schema.sql`:
+
+```bash
+mysql -u <user> -p <database> < resources/lxr-advancedranch/sql/schema.sql
+```
+
+### Option C: JSON (dev only)
+
+```lua
+Config.Database = { mode = 'json', jsonFallbackPath = 'data/', ... }
+```
+
+Not recommended for production — lacks atomicity and indexing.
+
+---
+
+## Step 3 — server.cfg
 
 ```cfg
+# order matters
+ensure oxmysql
 ensure lxr-advancedranch
+
+# admin permission
+add_ace group.admin ranch.admin allow
 ```
 
-> Make sure your framework resource starts **before** `lxr-advancedranch`.
+If you want per-identifier admin without ACE groups, add identifiers to `Config.Admin.identifiers`.
 
 ---
 
-## Step 5 — Configure
+## Step 4 — Framework
 
-Open `config.lua` and set:
+By default the resource auto-detects. To force one:
 
-1. `Config.Framework` — set to `'auto'` or specify your framework
-2. `Config.Discord` — add your bot token, guild ID, and webhook URL
-3. `Config.Admin.AcePermission` — set your ace permission or add identifiers
+```lua
+Config.Framework = 'rsg-core'   -- or 'lxr-core', 'vorp-core', etc.
+```
 
-Full configuration reference: see **CONFIG.md**
+See `docs/FRAMEWORKS.md` for per-framework notes, especially if inventory item keys differ on your server.
 
 ---
 
-## Step 6 — Start & Verify
+## Step 5 — Discord (optional)
 
-Start your server. In the console you should see:
+For webhook notifications (ownership transfers, auctions, payroll, hazards):
 
+```lua
+Config.Discord = {
+    enabled    = true,
+    webhookUrl = 'https://discord.com/api/webhooks/...',
+    guildId    = 'your-guild-id',
+    ...
+}
 ```
-[LXR Ranch] Framework bridge initialised: <your-framework>
-```
 
-If you see a **CRITICAL: RESOURCE NAME MISMATCH** error, rename the folder as instructed in Step 2.
-
----
-
-## Permissions
-
-Add admin permission:
+For Discord role → workforce role sync, add your bot token via `server.cfg` rather than hard-coding in `config.lua`:
 
 ```cfg
-add_ace identifier.license:XXXXXXXX ranch.admin allow
+set lxr_discord_token "your-bot-token"
 ```
 
-Or use the `Config.Admin.Identifiers` table in `config.lua`.
+Then your sync layer fetches roles using that token (implementation is server-operator specific — `RanchCore.SyncDiscordRolesForPlayer` is the hook).
 
 ---
 
-## Support
+## Step 6 — First Boot
 
-- Discord: https://discord.gg/CrKcWdfd3A
-- Website: https://www.wolves.land
-- Store: https://theluxempire.tebex.io
+Start the server. Expected console output:
+
+```
+[lxr-advancedranch] framework detected: rsg-core
+[lxr-advancedranch] DB migration complete — 10 tables verified
+[lxr-advancedranch] Seed ranches inserted: 5
+[lxr-advancedranch] Environment loaded — season: spring, weather: clear
+[lxr-advancedranch] Tickers started (livestock, environment, economy, auctions, workforce)
+```
+
+Join the server and press **F5** to open the ranch journal.
 
 ---
 
-*🐺 wolves.land — The Land of Wolves*
+## Step 7 — Admin Test
+
+In-game, run:
+
+```
+/ranchdump
+```
+
+Should print ranch/animal/worker/contract/auction counts. If admin gate fails, check your ACE config or `Config.Admin.identifiers`.
+
+---
+
+## Troubleshooting
+
+See `docs/TROUBLESHOOTING.md` for common issues: framework not detecting, DB connection failures, NUI not rendering, resource refusing to start due to rename, etc.
+
+---
+
+© 2026 iBoss21 / The Lux Empire · **wolves.land** · All Rights Reserved

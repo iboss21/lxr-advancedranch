@@ -1,43 +1,64 @@
-# LXR Ranch System — Installation Snippet
+# 🐺 Quick Install — lxr-advancedranch
 
-Paste this into your Tebex product page "Installation" tab.
-
----
-
-## Installation
-
-1. **Download** the resource from your Tebex library after purchase.
-
-2. **Rename** the extracted folder to exactly:
-   ```
-   lxr-advancedranch
-   ```
-
-3. **Place** the folder in your `resources` directory:
-   ```
-   resources/[lxr]/lxr-advancedranch/
-   ```
-
-4. **Add** to your `server.cfg`:
-   ```
-   ensure lxr-advancedranch
-   ```
-   > ⚠️ Your framework resource must start **before** `lxr-advancedranch`.
-
-5. **Configure** by editing `config.lua`:
-   - Set `Config.Framework` (or leave `'auto'`)
-   - Add your Discord bot token and webhook URL
-   - Set your admin ace permission or identifier
-
-6. **Restart** your server. You should see:
-   ```
-   [LXR Ranch] Framework bridge initialised: <framework>
-   ```
+*5-minute setup. Full walkthrough in `docs/INSTALL.md`.*
 
 ---
 
-For full documentation, see the included `docs/` folder.
+## 1. Drop It In
 
-Support: https://discord.gg/CrKcWdfd3A
+Unzip into `resources/lxr-advancedranch`. **Folder name must match exactly** — the resource refuses to start otherwise.
 
-*🐺 wolves.land — © 2026 iBoss21 / The Lux Empire*
+## 2. server.cfg
+
+```cfg
+ensure oxmysql
+ensure lxr-advancedranch
+
+add_ace group.admin ranch.admin allow
+```
+
+Make sure `oxmysql` loads **before** `lxr-advancedranch`.
+
+## 3. Database
+
+Tables auto-create on first boot (`Config.Database.autoMigrate = true`). No manual steps needed.
+
+If you prefer manual migration, set `autoMigrate = false` and run:
+
+```bash
+mysql -u <user> -p <database> < resources/lxr-advancedranch/sql/schema.sql
+```
+
+## 4. Configure
+
+Open `config.lua`:
+
+- **Framework** — leave as `'auto'` or force it: `Config.Framework = 'rsg-core'`
+- **Discord webhook** — paste your URL into `Config.Discord.webhookUrl`
+- **Seed ranches** — edit `Config.Ranches.seeds` to match your map
+
+## 5. Play
+
+Start the server. Join. Press **F5** to open the ranch journal.
+
+First admin commands to try:
+```
+/ranchdump
+/ranchcreate "My First Ranch"
+/ranchanimaladd <ranchId> cattle 5
+```
+
+---
+
+## Something Broken?
+
+Check `docs/TROUBLESHOOTING.md` first. If you're still stuck, open a ticket in [our Discord](https://discord.gg/CrKcWdfd3A) with:
+
+- FXServer artifact version
+- Framework and version
+- Full console output from `ensure lxr-advancedranch`
+- Steps to reproduce
+
+---
+
+© 2026 iBoss21 / The Lux Empire · **wolves.land**

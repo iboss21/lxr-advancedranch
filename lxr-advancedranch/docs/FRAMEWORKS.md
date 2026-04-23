@@ -1,105 +1,85 @@
-# 🐺 LXR Ranch System — Framework Compatibility
+# 🐺 Framework Integration — lxr-advancedranch
 
-> **wolves.land — The Land of Wolves**  
-> © 2026 iBoss21 / The Lux Empire | All Rights Reserved
-
----
-
-## Supported Frameworks
-
-| Framework | Status | Auto-detected |
-|-----------|--------|---------------|
-| LXR Core | ✅ Primary | Yes |
-| RSG Core | ✅ Primary | Yes |
-| VORP Core | ✅ Supported | Yes |
-| RedEM:RP | ✅ Supported | Yes |
-| QBR Core | ✅ Supported | Yes |
-| QR Core | ✅ Supported | Yes |
-| Standalone | ✅ Fallback | Yes (last resort) |
+This resource bridges every mainstream RedM framework through `shared/framework.lua`. Detection runs on boot; set `Config.Framework = 'auto'` (default) or force a specific key.
 
 ---
 
-## Detection Order
+## Auto-Detection Order
 
-The framework bridge detects frameworks in this order:
+1. `lxr-core`
+2. `rsg-core`
+3. `vorp-core`
+4. `redem-rp`
+5. `qbr-core`
+6. `qr-core`
+7. `standalone` (fallback)
 
-```
-1. LXR Core      (lxr-core)
-2. RSG Core      (rsg-core)
-3. VORP Core     (vorp_core)
-4. RedEM:RP      (redem_roleplay)
-5. QBR Core      (qbr-core)
-6. QR Core       (qr-core)
-7. Standalone    (fallback)
-```
-
-The first **started** resource wins.
+The first resource found with state `started` wins.
 
 ---
 
-## Manual Override
+## LXR Core (Primary)
 
-To force a specific framework, set in `config.lua`:
+Native target. Items are registered via `LXRCore.Functions.CreateUseableItem`. Inventory operations route through `Player.Functions.AddItem/RemoveItem` with `Player.Functions.GetItemByName` for existence checks.
 
-```lua
-Config.Framework = 'rsg-core'
-```
+## RSG Core (Primary)
 
----
+Mirrors the LXR path via `RSGCore.Functions.GetPlayer` et al. Used on the live wolves.land server. Inventory uses `Player.PlayerData.items` for introspection.
 
-## Bridge Interface
+Gold is disabled in this resource — `Config.Economy.useGold = false` means wolves.land rules apply regardless of RSG's built-in gold currency.
 
-The framework bridge exposes a unified interface regardless of the underlying framework:
+## VORP Core (Compatible)
 
-```lua
-Framework.Notify(source, message, type)
-Framework.GetPlayer(source)
-Framework.GetIdentifier(source)
-Framework.GetJob(source)
-Framework.AddItem(source, item, count)
-Framework.RemoveItem(source, item, count)
-Framework.HasItem(source, item, count)
-Framework.GetMoney(source)
-Framework.AddMoney(source, amount)
-Framework.RemoveMoney(source, amount)
-```
+Player fetch via `VORPcore.getUser(src).getUsedCharacter`. Inventory via `exports.vorp_inventory:getItemCount` / `addItem` / `subItem`. Money via `Character.addCurrency(0, amount)` (type 0 = cash).
 
----
+## RedEM:RP (Compatible)
 
-## Startup Log
+Uses `RedEM:getPlayerFromId` callback form. Inventory via `RedEMRP:getInventory` / `giveItem` / `removeItem`. Legacy callback-based API; detection gracefully handles the async shape.
 
-When the resource starts, you will see:
+## QBR / QR Core (Compatible)
 
-```
-[LXR Ranch] Framework bridge initialised: lxr-core
-```
+Same overall shape as RSG. QBR and QR have diverged in detail; the bridge probes both `QBRCore` and `QRCore` globals. Inventory ops are identical to RSG's API.
 
-If no framework is found, the resource will use `standalone` mode with minimal functionality.
+## Standalone
+
+Minimal fallback. No inventory integration — calls to `Framework.HasItem`, `AddItem`, `RemoveItem` return `false` / no-op. Cash accounting still works via a simple in-memory ledger per ranch. Use only for development or servers that will integrate inventory through a custom layer.
 
 ---
 
-## Framework-Specific Notes
+## Adapting Item Keys
 
-### LXR Core
-- Primary framework. Full feature support.
-- Notifications via `ox_lib`.
-- Inventory via `lxr-inventory`.
+Item keys like `'milk_jug'`, `'rawbeef'`, `'leather'`, `'wool'`, `'eggs'` are assumed to exist in your inventory. If yours uses different keys:
 
-### RSG Core
-- Full feature support.
-- Notifications via `ox_lib`.
-- Inventory via `rsg-inventory`.
+1. Edit `Config.Livestock.<species>.products` to match your inventory item names.
+2. Edit `Config.Economy.productionChains.<chain>.input` / `.output` likewise.
+3. Ensure `Config.Economy.baseDemand` has an entry for every good your contracts can ask for.
 
-### VORP Core
-- Full feature support.
-- Notifications via `vorp:TipRight`.
-- Inventory via `vorp_inventory`.
-
-### Standalone
-- Notifications via `chat:addMessage`.
-- No inventory integration.
-- Economy events are logged to console only.
+No code changes needed — the resource reads all item keys from config.
 
 ---
 
-*🐺 wolves.land — The Land of Wolves*
+## Notify Backend
+
+`Framework.Notify(src_or_message, type, duration)` routes to your framework's native notification:
+
+- **LXR / RSG:** `TriggerClientEvent('rsg:TextUI', src, message, type)` (fallback to RSG chat).
+- **VORP:** `TriggerClientEvent('vorp:TipRight', src, message, duration)`.
+- **RedEM:** `TriggerClientEvent('RedEMRP:Notify', src, type, 'Ranch', message, duration)`.
+- **Standalone:** `TriggerClientEvent('chat:addMessage', src, { args = { 'Ranch', message } })`.
+
+Override by editing `Framework.Notify` directly if your server runs a custom notification system.
+
+---
+
+## Admin Check
+
+`Framework.IsAdmin(src)` runs two checks:
+
+1. ACE — `IsPlayerAceAllowed(src, Config.Admin.acePermission)`.
+2. Identifier allowlist — `Config.Admin.identifiers[<any of the player's identifiers>] == true`.
+
+Either passing grants admin. If you only use one, leave the other empty.
+
+---
+
+© 2026 iBoss21 / The Lux Empire · **wolves.land** · All Rights Reserved

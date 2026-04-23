@@ -1,1001 +1,592 @@
-/**
- * Ranch System - Omni Frontier
- * Supreme UI JavaScript Controller
- * RedM NUI Compatible
- */
+/*
+    ██╗     ██╗  ██╗██████╗        ██████╗  █████╗ ███╗   ██╗ ██████╗██╗  ██╗
+    🐺 Advanced Ranch System - NUI Logic
+    © 2026 iBoss21 / The Lux Empire | wolves.land
 
-// Global state management
-let ranchData = {
-    ranchId: null,
-    ranchName: "Circle T Ranch",
-    balance: 0,
-    level: 1,
-    xp: 0,
-    livestock: [],
-    workforce: [],
-    tasks: [],
-    economy: {},
-    environment: {},
-    progression: {}
-};
+    Vanilla JS, no frameworks. Tab routing, data pull via NUI callbacks,
+    ESC-close guarantee, activity feed, bid/contract interactions.
+    No <form> tags — all actions via onClick handlers.
+*/
 
-// UI State
-let currentTab = 'dashboard';
+'use strict';
 
-/**
- * Initialize UI when ready
- */
-$(document).ready(function() {
-    console.log("Ranch UI System Initialized");
-    
-    // Listen for NUI messages from RedM
-    window.addEventListener('message', function(event) {
-        handleNUIMessage(event.data);
-    });
-    
-    // ESC key to close UI
-    $(document).keyup(function(e) {
-        if (e.key === "Escape") {
-            closeUI();
+const RanchUI = (function () {
+
+    const RES_NAME = (typeof GetParentResourceName === 'function')
+        ? GetParentResourceName() : 'lxr-advancedranch';
+
+    const state = {
+        open: false,
+        ranchId: null,
+        tab: 'dashboard',
+        locale: {},
+        theme: {},
+        feedMax: 25,
+        feed: [],
+        data: {
+            dashboard: null, livestock: null, workforce: null,
+            economy: null, environment: null, progression: null, auction: null
+        },
+        selectedAnimalId: null
+    };
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 🔧 POST TO CLIENT LUA
+    // ═══════════════════════════════════════════════════════════════════
+    function post(endpoint, payload) {
+        return fetch(`https://${RES_NAME}/${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+            body: JSON.stringify(payload || {})
+        }).catch(() => null);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 🔧 TOAST
+    // ═══════════════════════════════════════════════════════════════════
+    function toast(msg, kind, ttl) {
+        const rail = document.getElementById('toast-rail');
+        if (!rail) return;
+        const el = document.createElement('div');
+        el.className = 'toast' + (kind ? ' ' + kind : '');
+        el.textContent = msg;
+        rail.appendChild(el);
+        setTimeout(() => {
+            el.style.opacity = 0;
+            setTimeout(() => el.remove(), 240);
+        }, ttl || 3500);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 🔧 OPEN / CLOSE
+    // ═══════════════════════════════════════════════════════════════════
+    function open(payload) {
+        state.open = true;
+        state.ranchId = payload.ranchId || null;
+        state.locale  = payload.locale || {};
+        state.theme   = payload.theme || {};
+        state.feedMax = payload.feedMaxEntries || 25;
+        state.tab     = payload.defaultTab || 'dashboard';
+
+        document.getElementById('app-root').classList.remove('hidden');
+        switchTab(state.tab);
+    }
+
+    function close() {
+        state.open = false;
+        document.getElementById('app-root').classList.add('hidden');
+        post('close', {});
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 🔧 TAB ROUTER
+    // ═══════════════════════════════════════════════════════════════════
+    function switchTab(tab) {
+        state.tab = tab;
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.tab === tab);
+        });
+        document.querySelectorAll('.panel').forEach(p => {
+            p.classList.toggle('active', p.dataset.panel === tab);
+        });
+        post('pullTab', { tab: tab });
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 🔧 DATA INGEST
+    // ═══════════════════════════════════════════════════════════════════
+    function onTabData(tab, data, err) {
+        if (err) { toast('Error: ' + err, 'error'); return; }
+        state.data[tab] = data;
+        render(tab);
+    }
+
+    function onDelta(kind, payload) {
+        if (kind === 'animalAdded' || kind === 'animalUpdated') {
+            if (state.data.livestock) {
+                const idx = state.data.livestock.findIndex(a => a.id === payload.id);
+                if (idx >= 0) state.data.livestock[idx] = payload;
+                else state.data.livestock.push(payload);
+                if (state.tab === 'livestock') render('livestock');
+            }
+            appendFeed(kind === 'animalAdded'
+                ? `Animal added — ${payload.species} "${payload.name}"`
+                : `Animal updated — ${payload.name || payload.id}`);
         }
-    });
-});
-
-/**
- * Handle NUI messages from Lua
- */
-function handleNUIMessage(data) {
-    console.log("NUI Message:", data);
-    
-    switch(data.action) {
-        case 'open':
-            openUI(data.ranchData);
-            break;
-        case 'close':
-            closeUI();
-            break;
-        case 'updateRanchData':
-            updateRanchData(data.ranchData);
-            break;
-        case 'updateLivestock':
-            updateLivestock(data.livestock);
-            break;
-        case 'updateWorkforce':
-            updateWorkforce(data.workforce);
-            break;
-        case 'updateEconomy':
-            updateEconomy(data.economy);
-            break;
-        case 'updateEnvironment':
-            updateEnvironment(data.environment);
-            break;
-        case 'updateProgression':
-            updateProgression(data.progression);
-            break;
-        case 'addActivity':
-            addActivity(data.activity);
-            break;
-        case 'showNotification':
-            showNotification(data.message, data.type);
-            break;
+        else if (kind === 'animalRemoved') {
+            if (state.data.livestock) {
+                state.data.livestock = state.data.livestock.filter(a => a.id !== payload.id);
+                if (state.tab === 'livestock') render('livestock');
+            }
+            appendFeed(`Animal removed`);
+        }
+        else if (kind === 'contractsRefreshed') {
+            if (state.tab === 'economy') post('pullTab', { tab: 'economy' });
+            appendFeed('Contract boards refreshed');
+        }
+        else if (kind === 'auctionCreated' || kind === 'auctionUpdated' || kind === 'auctionSettled') {
+            if (state.tab === 'auction') post('pullTab', { tab: 'auction' });
+            if (kind === 'auctionSettled') appendFeed(`Auction settled: ${payload.status}`);
+        }
+        else if (kind === 'xpGained') {
+            appendFeed(`+${payload.amount} XP in ${payload.skill}`);
+            if (state.tab === 'progression') post('pullTab', { tab: 'progression' });
+        }
+        else if (kind === 'achievement') {
+            toast(`Achievement: ${payload.def.label}`, 'success', 5000);
+            appendFeed(`Achievement — ${payload.def.label}`);
+        }
     }
-}
 
-/**
- * Open the UI
- */
-function openUI(data) {
-    $('#ranchUI').fadeIn(300);
-    if (data) {
-        updateRanchData(data);
+    function appendFeed(text) {
+        const ts = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        state.feed.unshift({ ts: ts, text: text });
+        if (state.feed.length > state.feedMax) state.feed.pop();
+        if (state.tab === 'dashboard') renderFeed();
     }
-    // Notify Lua that UI is open
-    $.post('https://ranch-system-omni/uiOpened', JSON.stringify({}));
-}
 
-/**
- * Close the UI
- */
-function closeUI() {
-    $('#ranchUI').fadeOut(300);
-    // Notify Lua that UI is closed
-    $.post('https://ranch-system-omni/uiClosed', JSON.stringify({}));
-}
-
-/**
- * Show specific tab
- */
-function showTab(tabName) {
-    // Update button states
-    $('.tab-btn').removeClass('active');
-    $(`.tab-btn:contains('${capitalizeFirst(tabName)}')`).parent().find(`button[onclick="showTab('${tabName}')"]`).addClass('active');
-    
-    // Update content visibility
-    $('.tab-content').removeClass('active');
-    $(`#${tabName}`).addClass('active');
-    
-    currentTab = tabName;
-    
-    // Load tab-specific data
-    loadTabData(tabName);
-}
-
-/**
- * Load data for specific tab
- */
-function loadTabData(tabName) {
-    switch(tabName) {
-        case 'livestock':
-            renderLivestock();
-            break;
-        case 'workforce':
-            renderWorkforce();
-            break;
-        case 'economy':
-            renderEconomy();
-            break;
-        case 'environment':
-            renderEnvironment();
-            break;
-        case 'admin':
-            loadAdminLogs();
-            break;
+    // ═══════════════════════════════════════════════════════════════════
+    // 🔧 RENDERERS
+    // ═══════════════════════════════════════════════════════════════════
+    function render(tab) {
+        if (tab === 'dashboard')     renderDashboard();
+        else if (tab === 'livestock')   renderLivestock();
+        else if (tab === 'workforce')   renderWorkforce();
+        else if (tab === 'economy')     renderEconomy();
+        else if (tab === 'environment') renderEnvironment();
+        else if (tab === 'progression') renderProgression();
+        else if (tab === 'auction')     renderAuction();
     }
-}
 
-/**
- * Update ranch data
- */
-function updateRanchData(data) {
-    if (!data) return;
-    
-    // Merge data
-    Object.assign(ranchData, data);
-    
-    // Update header
-    $('#ranchName').text(data.ranchName || ranchData.ranchName);
-    
-    // Update dashboard stats
-    $('#totalAnimals').text(data.totalAnimals || (data.livestock ? data.livestock.length : 0));
-    $('#totalWorkers').text(data.totalWorkers || (data.workforce ? data.workforce.length : 0));
-    $('#ranchBalance').text('$' + formatNumber(data.balance || 0));
-    $('#ranchLevel').text(data.level || 1);
-    
-    // Update health bars
-    if (data.cleanliness !== undefined) {
-        updateProgressBar('cleanliness', data.cleanliness);
-    }
-    if (data.morale !== undefined) {
-        updateProgressBar('morale', data.morale);
-    }
-    if (data.integrity !== undefined) {
-        updateProgressBar('integrity', data.integrity);
-    }
-}
+    function setText(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
 
-/**
- * Update progress bar
- */
-function updateProgressBar(id, value) {
-    const percentage = Math.round(value * 100);
-    $(`#${id}Bar`).css('width', percentage + '%');
-    $(`#${id}Value`).text(percentage + '%');
-}
+    function renderHeader(env) {
+        if (!env) return;
+        setText('h-season',  env.season || '—');
+        setText('h-weather', env.weather || '—');
+        setText('h-temp',    (env.temp !== undefined ? env.temp + '°C' : '—'));
+    }
 
-/**
- * Update livestock data
- */
-function updateLivestock(livestock) {
-    if (!livestock) return;
-    ranchData.livestock = livestock;
-    if (currentTab === 'livestock') {
+    function renderDashboard() {
+        const d = state.data.dashboard;
+        if (!d) return;
+        setText('dash-ranch-label', d.ranch && d.ranch.label || '—');
+        setText('dash-tier',       d.tierLabel || '—');
+        setText('dash-balance',    '$' + (d.balance || 0).toLocaleString());
+        setText('dash-livestock',  d.livestock && d.livestock.total || 0);
+        setText('dash-workers',    d.workers || 0);
+        setText('dash-health',     (d.livestock && d.livestock.avgHealth !== undefined) ? (d.livestock.avgHealth + '%') : '—');
+        setText('dash-season',     (d.environment && d.environment.season) || '—');
+        renderHeader(d.environment);
+
+        const sp = document.getElementById('dash-species');
+        sp.innerHTML = '';
+        if (d.livestock && d.livestock.counts) {
+            Object.keys(d.livestock.counts).forEach(sk => {
+                const cell = document.createElement('div');
+                cell.className = 'species-cell';
+                cell.innerHTML = `<span class="sp-label">${sk}</span><span class="sp-count">${d.livestock.counts[sk] || 0}</span>`;
+                sp.appendChild(cell);
+            });
+        }
+
+        // Seed feed from ledger
+        if (d.ledger && d.ledger.length && state.feed.length === 0) {
+            d.ledger.slice(0, state.feedMax).forEach(l => {
+                const ts = new Date((l.ts || 0) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                state.feed.push({ ts: ts, text: `${l.kind || ''} — ${l.description || ''}` });
+            });
+        }
+        renderFeed();
+    }
+
+    function renderFeed() {
+        const ul = document.getElementById('feed-list');
+        if (!ul) return;
+        ul.innerHTML = '';
+        state.feed.forEach(f => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span class="ts">${f.ts}</span>${escapeHTML(f.text)}`;
+            ul.appendChild(li);
+        });
+    }
+
+    function renderLivestock() {
+        const list = document.getElementById('ls-list');
+        const detail = document.getElementById('ls-detail');
+        if (state.selectedAnimalId) {
+            list.classList.add('hidden');
+            detail.classList.remove('hidden');
+            renderAnimalDetail();
+            return;
+        }
+        list.classList.remove('hidden');
+        detail.classList.add('hidden');
+
+        list.innerHTML = '';
+        const animals = state.data.livestock || [];
+        const q = (document.getElementById('ls-search').value || '').toLowerCase();
+        const sp = document.getElementById('ls-filter-species').value || '';
+
+        animals
+            .filter(a => !sp || a.species === sp)
+            .filter(a => !q || (a.name || '').toLowerCase().includes(q) ||
+                         (a.species || '').toLowerCase().includes(q) ||
+                         (a.traits || '').toLowerCase().includes(q))
+            .forEach(a => {
+                const row = document.createElement('div');
+                row.className = 'ls-row';
+                row.onclick = () => { state.selectedAnimalId = a.id; renderLivestock(); };
+                const hp = a.health || 0;
+                const hpClass = hp < 30 ? ' low' : '';
+                row.innerHTML = `
+                    <div class="ls-name">${escapeHTML(a.name || a.id)}</div>
+                    <div class="ls-sub">${escapeHTML(a.species)} · ${escapeHTML(a.sex || '')} · age ${a.age_days || 0}d</div>
+                    <div class="ls-bars">
+                        ${bar('Health', hp, 'health' + hpClass)}
+                        ${bar('Hunger', a.hunger || 0, 'hunger')}
+                        ${bar('Thirst', a.thirst || 0, 'thirst')}
+                    </div>
+                `;
+                list.appendChild(row);
+            });
+    }
+
+    function renderAnimalDetail() {
+        const animals = state.data.livestock || [];
+        const a = animals.find(x => x.id === state.selectedAnimalId);
+        if (!a) { state.selectedAnimalId = null; renderLivestock(); return; }
+        setText('ld-name', a.name || a.id);
+        const grid = document.getElementById('ld-grid');
+        grid.innerHTML = `
+            <div class="card"><div class="card-h">Species</div><div class="card-v">${escapeHTML(a.species)}</div></div>
+            <div class="card"><div class="card-h">Sex</div><div class="card-v">${escapeHTML(a.sex || '—')}</div></div>
+            <div class="card"><div class="card-h">Age</div><div class="card-v">${a.age_days || 0}d</div></div>
+            <div class="card"><div class="card-h">Health</div><div class="card-v">${a.health || 0}%</div></div>
+            <div class="card"><div class="card-h">Hunger</div><div class="card-v">${a.hunger || 0}</div></div>
+            <div class="card"><div class="card-h">Thirst</div><div class="card-v">${a.thirst || 0}</div></div>
+            <div class="card"><div class="card-h">Trust</div><div class="card-v">${a.trust || 0}</div></div>
+            <div class="card"><div class="card-h">Bloodline</div><div class="card-v">${escapeHTML(a.bloodline || '—')}</div></div>
+        `;
+    }
+
+    function bar(label, val, cls) {
+        const pct = Math.max(0, Math.min(100, val));
+        return `<div class="bar-wrap"><span class="bar-label">${label}</span>
+                <div class="bar"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div></div>`;
+    }
+
+    function renderWorkforce() {
+        const roster = state.data.workforce || [];
+        const el = document.getElementById('wf-roster');
+        el.innerHTML = '';
+        if (!roster.length) {
+            el.innerHTML = '<div class="card" style="grid-column:1/-1;text-align:center;">No workers hired.</div>';
+            return;
+        }
+        roster.forEach(w => {
+            const card = document.createElement('div');
+            card.className = 'worker-card';
+            card.innerHTML = `
+                <div class="worker-name">${escapeHTML(w.name || w.identifier)}</div>
+                <div class="worker-role">${escapeHTML(w.role)}</div>
+                <div class="worker-stats">
+                    <div class="stat-cell"><div class="h">Morale</div><div class="v">${w.morale || 0}</div></div>
+                    <div class="stat-cell"><div class="h">Fatigue</div><div class="v">${w.fatigue || 0}</div></div>
+                </div>
+            `;
+            el.appendChild(card);
+        });
+    }
+
+    function renderEconomy() {
+        const d = state.data.economy;
+        if (!d) return;
+
+        const pg = document.getElementById('eco-prices');
+        pg.innerHTML = '';
+        Object.keys(d.prices || {}).forEach(k => {
+            const c = document.createElement('div');
+            c.className = 'price-cell';
+            c.innerHTML = `<span class="good">${k}</span><span class="price">$${d.prices[k]}</span>`;
+            pg.appendChild(c);
+        });
+
+        const ct = document.getElementById('eco-contracts');
+        ct.innerHTML = '';
+        (d.openContracts || []).forEach(c => {
+            const row = document.createElement('div');
+            row.className = 'contract-row';
+            row.innerHTML = `
+                <div class="ct-town">${escapeHTML(c.town)}</div>
+                <div class="ct-body">${c.amount}× ${escapeHTML(c.good)} · deadline ${fmtDeadline(c.deadline)}</div>
+                <div class="ct-reward">$${c.reward}</div>
+                <button class="btn" data-cid="${escapeHTML(c.id)}">Accept</button>
+            `;
+            row.querySelector('button').onclick = () => post('acceptContract', { contractId: c.id });
+            ct.appendChild(row);
+        });
+
+        const mc = document.getElementById('eco-mycontracts');
+        mc.innerHTML = '';
+        (d.myContracts || []).forEach(c => {
+            const row = document.createElement('div');
+            row.className = 'contract-row';
+            row.innerHTML = `
+                <div class="ct-town">${escapeHTML(c.town)}</div>
+                <div class="ct-body">${c.amount}× ${escapeHTML(c.good)} · deadline ${fmtDeadline(c.deadline)}</div>
+                <div class="ct-reward">$${c.reward}</div>
+                <button class="btn" data-cid="${escapeHTML(c.id)}">Deliver</button>
+            `;
+            row.querySelector('button').onclick = () => post('deliverContract', { contractId: c.id });
+            mc.appendChild(row);
+        });
+
+        const pr = document.getElementById('eco-prod');
+        pr.innerHTML = '';
+        const chains = d.productionChains || {};
+        Object.keys(chains).forEach(k => {
+            const ch = chains[k];
+            const io = `${objLine(ch.input)} → ${objLine(ch.output)}`;
+            const cell = document.createElement('div');
+            cell.className = 'prod-cell';
+            cell.innerHTML = `
+                <div class="prod-title">${k}</div>
+                <div class="prod-io">${escapeHTML(io)}</div>
+                <div class="prod-time">${ch.timeMinutes || 0} min · +${ch.xpPerBatch || 0} XP</div>
+                <button class="btn" data-chain="${escapeHTML(k)}">Start</button>
+            `;
+            cell.querySelector('button').onclick = () => post('startProduction', { chainKey: k });
+            pr.appendChild(cell);
+        });
+
+        const led = document.getElementById('eco-ledger');
+        led.innerHTML = '';
+        (d.ledger || []).slice(0, 30).forEach(l => {
+            const ts = new Date((l.ts || 0) * 1000).toLocaleString();
+            const amt = l.amount || 0;
+            const cls = amt < 0 ? 'neg' : '';
+            const li = document.createElement('li');
+            li.innerHTML = `<span class="ts">${ts}</span>
+                            <span class="desc">${escapeHTML(l.kind || '')} — ${escapeHTML(l.description || '')}</span>
+                            <span class="amt ${cls}">$${amt.toLocaleString()}</span>`;
+            led.appendChild(li);
+        });
+    }
+
+    function renderEnvironment() {
+        const d = state.data.environment;
+        if (!d) return;
+        renderHeader(d.snapshot);
+
+        const hero = document.getElementById('env-hero');
+        const s = d.snapshot || {};
+        hero.innerHTML = `
+            <div class="h-cell"><div class="h">Season</div><div class="v">${escapeHTML(s.season || '—')}</div></div>
+            <div class="h-cell"><div class="h">Weather</div><div class="v">${escapeHTML(s.weather || '—')}</div></div>
+            <div class="h-cell"><div class="h">Temperature</div><div class="v">${s.temp !== undefined ? s.temp + '°C' : '—'}</div></div>
+            <div class="h-cell"><div class="h">Uptime</div><div class="v">${fmtUptime(s.season_started)}</div></div>
+        `;
+
+        const se = document.getElementById('env-seasons');
+        se.innerHTML = '';
+        Object.keys(d.seasons || {}).forEach(k => {
+            const sdef = d.seasons[k];
+            const cell = document.createElement('div');
+            cell.className = 'season-cell' + (s.season === k ? ' current' : '');
+            cell.innerHTML = `
+                <div class="s-name">${escapeHTML(sdef.label || k)}</div>
+                <div class="s-temp">${(sdef.tempRange || [0,0]).join('° – ')}°C</div>
+            `;
+            se.appendChild(cell);
+        });
+
+        const hz = document.getElementById('env-hazards');
+        hz.innerHTML = '';
+        const activeByRanch = s.active_hazards || {};
+        const all = [];
+        Object.keys(activeByRanch).forEach(rid => {
+            (activeByRanch[rid] || []).forEach(h => all.push({ rid: rid, h: h }));
+        });
+        if (!all.length) {
+            hz.innerHTML = '<div class="hazard-row" style="color:var(--wl-text-soft);border-color:var(--wl-border-soft);background:var(--wl-bg-cell);">No active hazards.</div>';
+        } else {
+            all.forEach(a => {
+                const row = document.createElement('div');
+                row.className = 'hazard-row';
+                row.textContent = `⚠ ${a.h.label} @ ${a.rid}`;
+                hz.appendChild(row);
+            });
+        }
+    }
+
+    function renderProgression() {
+        const d = state.data.progression;
+        if (!d) return;
+
+        const sk = document.getElementById('prog-skills');
+        sk.innerHTML = '';
+        Object.keys(d.skills || {}).forEach(k => {
+            const s = d.skills[k];
+            const total = Math.max(1, s.nextLevelXp - s.currentLevelXp);
+            const have = Math.max(0, s.xp - s.currentLevelXp);
+            const pct = Math.max(0, Math.min(100, Math.floor(have / total * 100)));
+            const card = document.createElement('div');
+            card.className = 'skill-card';
+            let bonuses = '';
+            Object.keys(s.bonuses || {}).sort((a, b) => +a - +b).forEach(tier => {
+                const isActive = s.activeBonuses && s.activeBonuses[tier];
+                bonuses += `<li class="${isActive ? 'active' : ''}">Lvl ${tier}: ${escapeHTML(s.bonuses[tier])}</li>`;
+            });
+            card.innerHTML = `
+                <div class="sk-title">
+                    <span class="sk-name">${escapeHTML(s.label)}</span>
+                    <span class="sk-lvl">Lvl ${s.level}</span>
+                </div>
+                <div class="sk-desc">${escapeHTML(s.description || '')}</div>
+                <div class="sk-xp">
+                    <div class="bar"><div class="bar-fill" style="width:${pct}%"></div></div>
+                    <div class="xp-text">${have.toLocaleString()} / ${total.toLocaleString()} XP</div>
+                </div>
+                <ul class="sk-bonuses">${bonuses}</ul>
+            `;
+            sk.appendChild(card);
+        });
+
+        const ac = document.getElementById('prog-ach');
+        ac.innerHTML = '';
+        // No direct list of all achievement defs in payload (server only sent owned),
+        // so we iterate owned set. Config could be included server-side if needed.
+        Object.keys(d.achievements || {}).forEach(k => {
+            const cell = document.createElement('div');
+            cell.className = 'ach-cell unlocked';
+            cell.innerHTML = `<div class="ach-name">${escapeHTML(k)}</div>
+                              <div class="ach-req">Unlocked</div>`;
+            ac.appendChild(cell);
+        });
+        if (!ac.innerHTML) {
+            ac.innerHTML = '<div class="ach-cell"><div class="ach-name">No achievements yet</div><div class="ach-req">Build your empire</div></div>';
+        }
+    }
+
+    function renderAuction() {
+        const d = state.data.auction;
+        const list = document.getElementById('auc-list');
+        list.innerHTML = '';
+        if (!d || !d.lots || !d.lots.length) {
+            list.innerHTML = '<div class="card" style="text-align:center;">No live auctions.</div>';
+            return;
+        }
+        d.lots.forEach(a => {
+            const row = document.createElement('div');
+            row.className = 'auction-row';
+            const timeLeft = Math.max(0, (a.deadline || 0) - Math.floor(Date.now() / 1000));
+            const mm = Math.floor(timeLeft / 60), ss = timeLeft % 60;
+            row.innerHTML = `
+                <div class="au-lot">${escapeHTML(a.lot_type)}: ${escapeHTML(a.lot_ref)}</div>
+                <div class="au-body">Seller: ${escapeHTML(a.seller || '—')}<br/>High bidder: ${escapeHTML(a.high_bidder || '—')}</div>
+                <div class="au-bid">$${(a.current_bid || 0).toLocaleString()}</div>
+                <div class="au-time">${mm}m ${ss}s</div>
+                <div>
+                    <input class="text-input" type="number" min="1" placeholder="Bid" data-aid="${escapeHTML(a.id)}" />
+                    <button class="btn" data-aid="${escapeHTML(a.id)}">Bid</button>
+                </div>
+            `;
+            const btn = row.querySelector('button');
+            const input = row.querySelector('input');
+            btn.onclick = () => {
+                const amount = parseInt(input.value, 10);
+                if (!amount || amount <= 0) { toast('Enter a valid bid', 'error'); return; }
+                post('placeBid', { auctionId: a.id, amount: amount });
+            };
+            list.appendChild(row);
+        });
+    }
+
+    function submitAuction() {
+        const lotType = document.getElementById('auc-type').value;
+        const lotRef  = document.getElementById('auc-ref').value.trim();
+        const startBid = parseInt(document.getElementById('auc-bid').value, 10);
+        if (!lotRef || !startBid || startBid <= 0) { toast('Fill all auction fields', 'error'); return; }
+        post('createAuction', {
+            ranchId: state.ranchId, lotType: lotType, lotRef: lotRef, startBid: startBid
+        });
+        document.getElementById('auc-ref').value = '';
+        document.getElementById('auc-bid').value = '';
+    }
+
+    function closeDetail() {
+        state.selectedAnimalId = null;
         renderLivestock();
     }
-}
 
-/**
- * Render livestock cards
- */
-function renderLivestock() {
-    const grid = $('#livestockGrid');
-    grid.empty();
-    
-    if (!ranchData.livestock || ranchData.livestock.length === 0) {
-        grid.html(`
-            <div class="livestock-card">
-                <div class="animal-icon">
-                    <i class="fas fa-horse"></i>
-                </div>
-                <h4>No Animals</h4>
-                <p>Add animals to your ranch to get started.</p>
-            </div>
-        `);
-        return;
+    // ═══════════════════════════════════════════════════════════════════
+    // 🔧 HELPERS
+    // ═══════════════════════════════════════════════════════════════════
+    function escapeHTML(s) {
+        if (s === null || s === undefined) return '';
+        return String(s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
-    
-    ranchData.livestock.forEach(animal => {
-        const icon = getAnimalIcon(animal.species);
-        const card = $(`
-            <div class="livestock-card" data-animal-id="${animal.id}">
-                <div class="animal-icon">
-                    <i class="${icon}"></i>
-                </div>
-                <h4>${animal.name || 'Unnamed'}</h4>
-                <p>Species: ${capitalizeFirst(animal.species)}</p>
-                <p>Health: ${Math.round((animal.health || 1) * 100)}%</p>
-                <p>Trust: ${Math.round((animal.trust || 0.5) * 100)}%</p>
-            </div>
-        `);
-        
-        card.click(function() {
-            viewAnimalDetails(animal.id);
+    function fmtDeadline(ts) {
+        if (!ts) return '—';
+        const diff = ts - Math.floor(Date.now() / 1000);
+        if (diff <= 0) return 'expired';
+        const h = Math.floor(diff / 3600), m = Math.floor((diff % 3600) / 60);
+        return `${h}h ${m}m`;
+    }
+    function fmtUptime(ts) {
+        if (!ts) return '—';
+        const diff = Math.floor(Date.now() / 1000) - ts;
+        const h = Math.floor(diff / 3600), m = Math.floor((diff % 3600) / 60);
+        return `${h}h ${m}m`;
+    }
+    function objLine(o) {
+        if (!o) return '';
+        return Object.keys(o).map(k => `${o[k]}× ${k}`).join(', ');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // 🔧 WIRING
+    // ═══════════════════════════════════════════════════════════════════
+    window.addEventListener('message', function (ev) {
+        const msg = ev.data || {};
+        if (msg.action === 'open')      open(msg);
+        else if (msg.action === 'close')   close();
+        else if (msg.action === 'tabData') onTabData(msg.tab, msg.data, msg.error);
+        else if (msg.action === 'delta')   onDelta(msg.kind, msg.payload);
+    });
+
+    window.addEventListener('keyup', function (e) {
+        if (!state.open) return;
+        if (e.key === 'Escape' || e.keyCode === 27) { close(); }
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.addEventListener('click', () => switchTab(b.dataset.tab));
         });
-        
-        grid.append(card);
-    });
-}
+        document.getElementById('btn-close').addEventListener('click', close);
 
-/**
- * Get icon for animal species
- */
-function getAnimalIcon(species) {
-    const icons = {
-        'horse': 'fas fa-horse',
-        'cattle': 'fas fa-cow',
-        'sheep': 'fas fa-sheep',
-        'pig': 'fas fa-piggy-bank',
-        'chicken': 'fas fa-egg',
-        'goat': 'fas fa-mountain',
-        'dog': 'fas fa-dog',
-        'cat': 'fas fa-cat'
-    };
-    return icons[species] || 'fas fa-paw';
-}
-
-/**
- * Update workforce data
- */
-function updateWorkforce(workforce) {
-    if (!workforce) return;
-    ranchData.workforce = workforce;
-    if (currentTab === 'workforce') {
-        renderWorkforce();
-    }
-}
-
-/**
- * Render workforce
- */
-function renderWorkforce() {
-    const list = $('#workforceList');
-    list.empty();
-    
-    if (!ranchData.workforce || ranchData.workforce.length === 0) {
-        list.html(`
-            <div class="worker-card">
-                <div class="worker-info">
-                    <i class="fas fa-user"></i>
-                    <span>No workers assigned. Hire workers to help manage your ranch.</span>
-                </div>
-            </div>
-        `);
-        return;
-    }
-    
-    ranchData.workforce.forEach(worker => {
-        const card = $(`
-            <div class="worker-card">
-                <div class="worker-info">
-                    <i class="fas fa-user"></i>
-                    <div>
-                        <h4>${worker.name || 'Unnamed Worker'}</h4>
-                        <p>Role: ${worker.role || 'Hand'}</p>
-                        <p>Morale: ${Math.round((worker.morale || 0.8) * 100)}%</p>
-                        <p>Fatigue: ${Math.round((worker.fatigue || 0.2) * 100)}%</p>
-                    </div>
-                </div>
-            </div>
-        `);
-        list.append(card);
-    });
-    
-    // Render tasks
-    renderTasks();
-}
-
-/**
- * Render tasks
- */
-function renderTasks() {
-    const taskList = $('#taskList');
-    taskList.empty();
-    
-    if (!ranchData.tasks || ranchData.tasks.length === 0) {
-        taskList.html('<p style="color: var(--text-secondary); text-align: center;">No active tasks</p>');
-        return;
-    }
-    
-    ranchData.tasks.forEach(task => {
-        const taskItem = $(`
-            <div class="activity-item">
-                <span class="activity-time">${task.type || 'Task'}</span>
-                <span class="activity-text">${task.description || 'No description'}</span>
-            </div>
-        `);
-        taskList.append(taskItem);
-    });
-}
-
-/**
- * Update economy data
- */
-function updateEconomy(economy) {
-    if (!economy) return;
-    ranchData.economy = economy;
-    if (currentTab === 'economy') {
-        renderEconomy();
-    }
-}
-
-/**
- * Render economy tab
- */
-function renderEconomy() {
-    // Update ledger
-    const totalIncome = ranchData.economy.totalIncome || 0;
-    const totalExpenses = ranchData.economy.totalExpenses || 0;
-    const netBalance = totalIncome - totalExpenses;
-    
-    $('#totalIncome').text('$' + formatNumber(totalIncome));
-    $('#totalExpenses').text('$' + formatNumber(totalExpenses));
-    $('#netBalance').text('$' + formatNumber(netBalance));
-    
-    // Render market prices
-    const marketList = $('#marketPrices');
-    marketList.empty();
-    
-    if (ranchData.economy.prices) {
-        Object.keys(ranchData.economy.prices).forEach(product => {
-            const price = ranchData.economy.prices[product];
-            const item = $(`
-                <div class="activity-item">
-                    <span class="activity-time">${capitalizeFirst(product)}</span>
-                    <span class="activity-text">$${price.toFixed(2)}</span>
-                </div>
-            `);
-            marketList.append(item);
+        document.getElementById('ls-search').addEventListener('input', () => {
+            if (state.tab === 'livestock') renderLivestock();
         });
-    } else {
-        marketList.html('<p style="color: var(--text-secondary); text-align: center;">No market data available</p>');
-    }
-    
-    // Render contracts
-    const contractsList = $('#contractsList');
-    contractsList.empty();
-    
-    if (ranchData.economy.contracts && ranchData.economy.contracts.length > 0) {
-        ranchData.economy.contracts.forEach(contract => {
-            const contractItem = $(`
-                <div class="activity-item">
-                    <span class="activity-time">${contract.town || 'Unknown'}</span>
-                    <span class="activity-text">${contract.description || 'No description'} - $${contract.reward || 0}</span>
-                </div>
-            `);
-            contractsList.append(contractItem);
+        document.getElementById('ls-filter-species').addEventListener('change', () => {
+            if (state.tab === 'livestock') renderLivestock();
         });
-    } else {
-        contractsList.html('<p style="color: var(--text-secondary); text-align: center;">No active contracts</p>');
-    }
-}
 
-/**
- * Update environment data
- */
-function updateEnvironment(environment) {
-    if (!environment) return;
-    ranchData.environment = environment;
-    
-    // Update header season/weather
-    if (environment.season) {
-        $('#currentSeason').html(`<i class="${getSeasonIcon(environment.season)}"></i> ${capitalizeFirst(environment.season)}`);
-    }
-    if (environment.weather) {
-        $('#currentWeather').html(`<i class="${getWeatherIcon(environment.weather)}"></i> ${capitalizeFirst(environment.weather)}`);
-    }
-    
-    if (currentTab === 'environment') {
-        renderEnvironment();
-    }
-}
-
-/**
- * Render environment tab
- */
-function renderEnvironment() {
-    const env = ranchData.environment;
-    
-    if (env.season) {
-        $('#seasonName').text(capitalizeFirst(env.season));
-        $('#seasonIcon').html(`<i class="${getSeasonIcon(env.season)}"></i>`);
-        
-        // Season description
-        const descriptions = {
-            'spring': 'Grass is growing, animals are active',
-            'summer': 'Hot and dry, watch for droughts',
-            'autumn': 'Harvest time, prepare for winter',
-            'winter': 'Cold weather, increased feed demand'
-        };
-        $('#seasonDescription').text(descriptions[env.season] || 'Season in progress');
-    }
-    
-    if (env.weather) {
-        const weatherIcon = getWeatherIcon(env.weather);
-        $('.weather-icon-large').removeClass().addClass('weather-icon-large ' + weatherIcon);
-        $('.weather-type').text(capitalizeFirst(env.weather));
-    }
-    
-    if (env.temperature !== undefined) {
-        $('.temperature').text(env.temperature + '°F');
-    }
-    
-    // Render hazards
-    const hazardsList = $('#hazardsList');
-    hazardsList.empty();
-    
-    if (env.hazards && env.hazards.length > 0) {
-        env.hazards.forEach(hazard => {
-            const hazardItem = $(`
-                <div class="activity-item">
-                    <span class="activity-time">${capitalizeFirst(hazard.type)}</span>
-                    <span class="activity-text">${hazard.description || 'Active hazard'}</span>
-                </div>
-            `);
-            hazardsList.append(hazardItem);
-        });
-    } else {
-        hazardsList.html('<p class="no-hazards">No active hazards</p>');
-    }
-}
-
-/**
- * Get season icon
- */
-function getSeasonIcon(season) {
-    const icons = {
-        'spring': 'fas fa-leaf',
-        'summer': 'fas fa-sun',
-        'autumn': 'fas fa-tree',
-        'winter': 'fas fa-snowflake'
-    };
-    return icons[season] || 'fas fa-calendar';
-}
-
-/**
- * Get weather icon
- */
-function getWeatherIcon(weather) {
-    const icons = {
-        'clear': 'fas fa-sun',
-        'rain': 'fas fa-cloud-rain',
-        'storm': 'fas fa-cloud-bolt',
-        'snow': 'fas fa-snowflake',
-        'fog': 'fas fa-smog'
-    };
-    return icons[weather] || 'fas fa-cloud';
-}
-
-/**
- * Update progression data
- */
-function updateProgression(progression) {
-    if (!progression) return;
-    ranchData.progression = progression;
-}
-
-/**
- * Add activity to feed
- */
-function addActivity(activity) {
-    const activityList = $('#activityList');
-    const item = $(`
-        <div class="activity-item">
-            <span class="activity-time">${activity.time || 'Just now'}</span>
-            <span class="activity-text">${activity.text || ''}</span>
-        </div>
-    `);
-    activityList.prepend(item);
-    
-    // Keep only last 10 items
-    activityList.children().slice(10).remove();
-}
-
-/**
- * Show notification
- */
-function showNotification(message, type) {
-    // Simple notification - can be enhanced
-    console.log(`[${type}] ${message}`);
-    addActivity({ time: 'Just now', text: message });
-}
-
-/**
- * Admin Actions
- */
-function adminAction(action) {
-    console.log("Admin action:", action);
-    
-    // Send to Lua backend
-    $.post('https://ranch-system-omni/adminAction', JSON.stringify({
-        action: action
-    }));
-}
-
-/**
- * Show hire dialog
- */
-function showHireDialog() {
-    $.post('https://ranch-system-omni/showHireDialog', JSON.stringify({}));
-}
-
-/**
- * View animal details
- */
-// Current animal ID for actions
-let currentAnimalId = null;
-
-function viewAnimalDetails(animalId) {
-    // Safety check
-    if (!ranchData.livestock) {
-        showNotification('No livestock data available', 'error');
-        return;
-    }
-    
-    const animal = ranchData.livestock.find(a => a.id === animalId);
-    if (!animal) return;
-    
-    // Populate modal
-    $('#modalAnimalName').text(animal.name || 'Unnamed Animal');
-    $('#modalSpecies').text(capitalizeFirst(animal.species || 'Unknown'));
-    $('#modalBreed').text(animal.breed || 'Mixed');
-    $('#modalAge').text(animal.age ? `${animal.age} years` : 'Unknown');
-    $('#modalGender').text(capitalizeFirst(animal.gender || 'Unknown'));
-    
-    // Health stats
-    const health = Math.round((animal.health || 1) * 100);
-    const trust = Math.round((animal.trust || 0.5) * 100);
-    const hunger = Math.round((1 - (animal.hunger || 0)) * 100);
-    
-    $('#modalHealth').text(health + '%');
-    $('#modalHealthBar').css('width', health + '%');
-    $('#modalTrust').text(trust + '%');
-    $('#modalTrustBar').css('width', trust + '%');
-    $('#modalHunger').text(hunger + '%');
-    $('#modalHungerBar').css('width', hunger + '%');
-    
-    // Genetics
-    $('#modalBloodline').text(animal.bloodline || 'Unknown');
-    const quality = animal.quality || 'common';
-    $('#modalQuality').html(`<span class="quality-badge ${quality}">${capitalizeFirst(quality)}</span>`);
-    
-    // Traits
-    const traitsContainer = $('#modalTraits');
-    traitsContainer.empty();
-    if (animal.traits && animal.traits.length > 0) {
-        animal.traits.forEach(trait => {
-            traitsContainer.append(`<span class="trait-badge">${trait}</span>`);
-        });
-    } else {
-        traitsContainer.append('<span class="trait-badge">No special traits</span>');
-    }
-    
-    // Store current animal ID for actions
-    currentAnimalId = animalId;
-    
-    // Show modal
-    $('#animalModal').fadeIn(300);
-}
-
-/**
- * Close animal modal
- */
-function closeAnimalModal() {
-    $('#animalModal').fadeOut(300);
-    currentAnimalId = null;
-}
-
-/**
- * Feed animal action
- */
-function feedAnimal() {
-    if (!currentAnimalId) return;
-    
-    $.post('https://ranch-system-omni/feedAnimal', JSON.stringify({
-        animalId: currentAnimalId
-    }));
-    
-    showNotification('Animal fed successfully', 'success');
-    closeAnimalModal();
-}
-
-/**
- * Treat animal action
- */
-function treatAnimal() {
-    if (!currentAnimalId) return;
-    
-    $.post('https://ranch-system-omni/treatAnimal', JSON.stringify({
-        animalId: currentAnimalId
-    }));
-    
-    showNotification('Treatment applied', 'success');
-    closeAnimalModal();
-}
-
-/**
- * Breed animal action
- */
-function breedAnimal() {
-    if (!currentAnimalId) return;
-    
-    $.post('https://ranch-system-omni/breedAnimal', JSON.stringify({
-        animalId: currentAnimalId
-    }));
-    
-    showNotification('Breeding initiated', 'success');
-    closeAnimalModal();
-}
-
-/**
- * Sell animal action
- */
-function sellAnimal() {
-    if (!currentAnimalId) return;
-    
-    if (confirm('Are you sure you want to sell this animal?')) {
-        $.post('https://ranch-system-omni/sellAnimal', JSON.stringify({
-            animalId: currentAnimalId
-        }));
-        
-        showNotification('Animal sold', 'success');
-        closeAnimalModal();
-    }
-}
-
-/**
- * Open progression modal
- */
-function openProgressionModal() {
-    const prog = ranchData.progression || {};
-    
-    // Set level and XP
-    $('#progLevel').text(prog.level || 1);
-    const currentXP = prog.xp || 0;
-    const requiredXP = prog.requiredXP || 1000;
-    const xpPercent = (currentXP / requiredXP) * 100;
-    
-    $('#currentXP').text(currentXP);
-    $('#requiredXP').text(requiredXP);
-    $('#xpBar').css('width', xpPercent + '%');
-    
-    // Render skills
-    renderSkills('husbandry', prog.skills?.husbandry || []);
-    renderSkills('veterinary', prog.skills?.veterinary || []);
-    renderSkills('wrangler', prog.skills?.wrangler || []);
-    renderSkills('teamster', prog.skills?.teamster || []);
-    
-    // Render achievements
-    renderAchievements(prog.achievements || []);
-    
-    // Show modal
-    $('#progressionModal').fadeIn(300);
-}
-
-/**
- * Close progression modal
- */
-function closeProgressionModal() {
-    $('#progressionModal').fadeOut(300);
-}
-
-/**
- * Render skills for a specific category
- */
-function renderSkills(category, skills) {
-    const container = $(`#${category}Skills`);
-    container.empty();
-    
-    // Sample skills if none provided
-    if (!skills || skills.length === 0) {
-        skills = [
-            { name: 'Basic Training', level: 1, unlocked: true },
-            { name: 'Advanced Care', level: 0, unlocked: false },
-            { name: 'Master Handler', level: 0, unlocked: false }
-        ];
-    }
-    
-    skills.forEach(skill => {
-        const skillItem = $(`
-            <div class="skill-item ${skill.unlocked ? '' : 'locked'}">
-                <span class="skill-name">${skill.name}</span>
-                <span class="skill-level">Lvl ${skill.level || 0}</span>
-            </div>
-        `);
-        container.append(skillItem);
-    });
-}
-
-/**
- * Render achievements
- */
-function renderAchievements(achievements) {
-    const container = $('#achievementsList');
-    container.empty();
-    
-    // Sample achievements if none provided
-    if (!achievements || achievements.length === 0) {
-        achievements = [
-            { id: 'first_animal', name: 'First Steps', desc: 'Purchase your first animal', unlocked: true, icon: 'fa-paw' },
-            { id: 'ten_animals', name: 'Growing Herd', desc: 'Own 10 animals', unlocked: false, icon: 'fa-horse-head' },
-            { id: 'first_birth', name: 'New Life', desc: 'Birth your first animal', unlocked: false, icon: 'fa-heart' },
-            { id: 'master_breeder', name: 'Master Breeder', desc: 'Breed 50 animals', unlocked: false, icon: 'fa-trophy' },
-            { id: 'first_sale', name: 'Entrepreneur', desc: 'Sell your first animal', unlocked: true, icon: 'fa-dollar-sign' },
-            { id: 'wealthy', name: 'Wealthy Rancher', desc: 'Earn $10,000', unlocked: false, icon: 'fa-coins' }
-        ];
-    }
-    
-    achievements.forEach(achievement => {
-        const card = $(`
-            <div class="achievement-card ${achievement.unlocked ? '' : 'locked'}">
-                <div class="achievement-icon">
-                    <i class="fas ${achievement.icon || 'fa-star'}"></i>
-                </div>
-                <div class="achievement-name">${achievement.name}</div>
-                <div class="achievement-desc">${achievement.desc}</div>
-            </div>
-        `);
-        container.append(card);
-    });
-}
-
-/**
- * Open auction modal
- */
-function openAuctionModal() {
-    renderAuctionListings();
-    $('#auctionModal').fadeIn(300);
-}
-
-/**
- * Close auction modal
- */
-function closeAuctionModal() {
-    $('#auctionModal').fadeOut(300);
-}
-
-/**
- * Render auction listings
- */
-function renderAuctionListings() {
-    const container = $('#auctionListings');
-    container.empty();
-    
-    // Sample auction items
-    const auctionItems = ranchData.economy?.auctions || [
-        {
-            id: 1,
-            title: 'American Paint Horse',
-            type: 'horse',
-            currentBid: 450,
-            timeLeft: '2h 15m',
-            seller: 'John Doe',
-            quality: 'excellent'
-        },
-        {
-            id: 2,
-            title: 'Angus Bull',
-            type: 'cattle',
-            currentBid: 800,
-            timeLeft: '5h 30m',
-            seller: 'Jane Smith',
-            quality: 'superior'
-        },
-        {
-            id: 3,
-            title: 'Merino Sheep (x5)',
-            type: 'sheep',
-            currentBid: 250,
-            timeLeft: '1h 45m',
-            seller: 'Bob Wilson',
-            quality: 'good'
-        },
-        {
-            id: 4,
-            title: 'Premium Wagon',
-            type: 'equipment',
-            currentBid: 1200,
-            timeLeft: '3h 00m',
-            seller: 'Tom Brown',
-            quality: 'excellent'
-        }
-    ];
-    
-    auctionItems.forEach(item => {
-        const card = $(`
-            <div class="auction-item">
-                <div class="auction-header">
-                    <span class="auction-title">${item.title}</span>
-                    <span class="auction-timer"><i class="fas fa-clock"></i> ${item.timeLeft}</span>
-                </div>
-                <div class="auction-details">
-                    <div class="auction-detail-row">
-                        <span>Seller:</span>
-                        <span>${item.seller}</span>
-                    </div>
-                    <div class="auction-detail-row">
-                        <span>Quality:</span>
-                        <span class="quality-badge ${item.quality}">${capitalizeFirst(item.quality)}</span>
-                    </div>
-                    <div class="auction-detail-row">
-                        <span>Current Bid:</span>
-                        <span style="color: var(--accent-color); font-weight: 700;">$${item.currentBid}</span>
-                    </div>
-                </div>
-                <div class="auction-bid">
-                    <input type="number" class="bid-input" placeholder="Your bid" min="${item.currentBid + 10}" />
-                    <button class="bid-btn" onclick="placeBid(${item.id})">
-                        <i class="fas fa-gavel"></i> Bid
-                    </button>
-                </div>
-            </div>
-        `);
-        container.append(card);
-    });
-    
-    if (auctionItems.length === 0) {
-        container.html('<p style="text-align: center; color: var(--text-secondary); padding: 40px;">No active auctions</p>');
-    }
-}
-
-/**
- * Place bid on auction item
- */
-function placeBid(auctionId, event) {
-    // Get the input element from the event target or use jQuery to find it
-    const bidInput = event ? $(event.target).closest('.auction-bid').find('.bid-input') : $(`.auction-item[data-id="${auctionId}"]`).find('.bid-input');
-    const bidAmount = bidInput.val();
-    
-    if (!bidAmount || bidAmount <= 0) {
-        showNotification('Please enter a valid bid amount', 'error');
-        return;
-    }
-    
-    $.post('https://ranch-system-omni/placeBid', JSON.stringify({
-        auctionId: auctionId,
-        amount: parseFloat(bidAmount)
-    }));
-    
-    showNotification('Bid placed successfully!', 'success');
-}
-
-/**
- * Show notification toast
- */
-function showNotification(message, type = 'info') {
-    const toast = $('#notificationToast');
-    const icon = $('#toastIcon');
-    const msgSpan = $('#toastMessage');
-    
-    // Set icon based on type
-    const icons = {
-        'success': 'fa-check-circle',
-        'error': 'fa-exclamation-circle',
-        'warning': 'fa-exclamation-triangle',
-        'info': 'fa-info-circle'
-    };
-    
-    icon.removeClass().addClass('fas ' + (icons[type] || icons['info']));
-    toast.removeClass('success error warning').addClass(type);
-    msgSpan.text(message);
-    
-    // Show toast
-    toast.fadeIn(300);
-    
-    // Auto hide after 3 seconds
-    setTimeout(() => {
-        toast.fadeOut(300);
-    }, 3000);
-}
-
-/**
- * Show tooltip
- */
-function showTooltip(text, x, y) {
-    const tooltip = $('#tooltip');
-    $('#tooltipContent').text(text);
-    tooltip.css({ left: x + 'px', top: y + 'px' });
-    tooltip.fadeIn(200);
-}
-
-/**
- * Hide tooltip
- */
-function hideTooltip() {
-    $('#tooltip').fadeOut(200);
-}
-
-// Add tooltip hover handlers
-$(document).ready(function() {
-    $('[title]').hover(
-        function(e) {
-            const title = $(this).attr('title');
-            if (title) {
-                $(this).data('title', title).removeAttr('title');
-                showTooltip(title, e.pageX + 10, e.pageY + 10);
-            }
-        },
-        function() {
-            const title = $(this).data('title');
-            if (title) {
-                $(this).attr('title', title);
-            }
-            hideTooltip();
-        }
-    );
-});
-
-/**
- * Load admin logs
- */
-function loadAdminLogs() {
-    const logList = $('#adminLogs');
-    logList.html('<p style="color: var(--text-secondary); text-align: center;">Loading admin logs...</p>');
-    
-    $.post('https://ranch-system-omni/getAdminLogs', JSON.stringify({}), function(logs) {
-        logList.empty();
-        if (logs && logs.length > 0) {
-            logs.forEach(log => {
-                const logItem = $(`
-                    <div class="activity-item">
-                        <span class="activity-time">${log.time || ''}</span>
-                        <span class="activity-text">${log.message || ''}</span>
-                    </div>
-                `);
-                logList.append(logItem);
+        document.querySelectorAll('.detail-actions [data-act]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!state.selectedAnimalId) return;
+                post('interactAnimal', { animalId: state.selectedAnimalId, action: btn.dataset.act });
             });
-        } else {
-            logList.html('<p style="color: var(--text-secondary); text-align: center;">No admin logs available</p>');
-        }
+        });
     });
-}
 
-/**
- * Utility: Format number with commas
- */
-function formatNumber(num) {
-    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-}
+    return {
+        submitAuction: submitAuction,
+        closeDetail:   closeDetail
+    };
 
-/**
- * Utility: Capitalize first letter
- */
-function capitalizeFirst(str) {
-    if (!str) return '';
-    return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-// Export functions for global access
-window.closeUI = closeUI;
-window.showTab = showTab;
-window.adminAction = adminAction;
-window.showHireDialog = showHireDialog;
-window.viewAnimalDetails = viewAnimalDetails;
-window.closeAnimalModal = closeAnimalModal;
-window.feedAnimal = feedAnimal;
-window.treatAnimal = treatAnimal;
-window.breedAnimal = breedAnimal;
-window.sellAnimal = sellAnimal;
-window.openProgressionModal = openProgressionModal;
-window.closeProgressionModal = closeProgressionModal;
-window.openAuctionModal = openAuctionModal;
-window.closeAuctionModal = closeAuctionModal;
-window.placeBid = placeBid;
+})();

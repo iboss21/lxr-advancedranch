@@ -6,11 +6,13 @@
     ███████╗██╔╝ ██╗██║  ██║      ██║  ██║██║  ██║██║ ╚████║╚██████╗██║  ██║
     ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝      ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝
 
-    🐺 LXR Ranch System — Production Configuration
+    🐺 LXR Core - Advanced Ranch System (Buyer Control Panel)
 
-    This is the BUYER CONTROL PANEL. All user-tunable settings live here.
-    Gameplay logic, security checks, and internal implementation are protected
-    in the server/client/shared folders via Tebex escrow encryption.
+    This is the ONLY file a buyer needs to edit. Every tunable value — prices,
+    cooldowns, livestock species, contract payouts, seasonal modifiers, keybinds,
+    admin identifiers, Discord roles, UI toggles — lives here. Gameplay logic
+    and anti-abuse code are protected inside the escrow-encrypted server/client
+    files and read from this table at runtime.
 
     ═══════════════════════════════════════════════════════════════════════════════
     SERVER INFORMATION
@@ -32,11 +34,14 @@
     ═══════════════════════════════════════════════════════════════════════════════
 
     Version: 1.0.0
-    Resource: lxr-advancedranch
+    Performance Target: 150+ concurrent players, sub-0.05ms idle client usage
+
+    Tags: RedM, Ranch, Livestock, Economy, Workforce, Auction, Contracts,
+          Progression, Zoning, NUI, MariaDB, Georgian
 
     Framework Support:
     - LXR Core (Primary)
-    - RSG Core (Compatible)
+    - RSG Core (Primary)
     - VORP Core (Compatible)
     - RedEM:RP (Compatible)
     - QBR Core (Compatible)
@@ -44,21 +49,11 @@
     - Standalone (Fallback)
 
     ═══════════════════════════════════════════════════════════════════════════════
-    IMPORTANT — ESCROW NOTICE
-    ═══════════════════════════════════════════════════════════════════════════════
-
-    This file (config.lua) is intentionally NOT escrow-protected.
-    It is the buyer's configuration surface. Edit freely.
-
-    The resource name security check, all gameplay logic, framework bridges,
-    and anti-abuse systems are located in the protected server/client/shared
-    folders. Those files are encrypted and cannot be modified.
-
-    ═══════════════════════════════════════════════════════════════════════════════
     CREDITS
     ═══════════════════════════════════════════════════════════════════════════════
 
     Script Author: iBoss21 / The Lux Empire for The Land of Wolves
+
     © 2026 iBoss21 / The Lux Empire | wolves.land | All Rights Reserved
 ]]
 
@@ -69,11 +64,10 @@ Config = {}
 -- ████████████████████████████████████████████████████████████████████████████████
 
 Config.ServerInfo = {
-    name        = 'The Land of Wolves 🐺',
-    tagline     = 'Georgian RP 🇬🇪 | მგლების მიწა - რჩეულთა ადგილი!',
-    description = 'ისტორია ცოცხლდება აქ!', -- History Lives Here!
-    type        = 'Serious Hardcore Roleplay',
-    access      = 'Discord & Whitelisted',
+    name     = 'The Land of Wolves',
+    tagline  = 'Georgian RP | მგლების მიწა - რჩეულთა ადგილი!',
+    type     = 'Serious Hardcore Roleplay',
+    access   = 'Discord & Whitelisted',
 
     -- Contact & Links
     website       = 'https://www.wolves.land',
@@ -82,29 +76,15 @@ Config.ServerInfo = {
     store         = 'https://theluxempire.tebex.io',
     serverListing = 'https://servers.redm.net/servers/detail/8gj7eb',
 
-    -- Developer Info
-    developer = 'iBoss21 / The Lux Empire',
-
-    -- Tags
-    tags = { 'RedM', 'Georgian', 'SeriousRP', 'Whitelist', 'RanchSystem', 'Economy', 'Livestock' }
+    -- Developer attribution
+    developer = 'iBoss21 / The Lux Empire'
 }
 
 -- ████████████████████████████████████████████████████████████████████████████████
 -- ████████████████████████ FRAMEWORK CONFIGURATION ███████████████████████████████
 -- ████████████████████████████████████████████████████████████████████████████████
 
---[[
-    Framework Priority (in order):
-    1. LXR-Core  (Primary)
-    2. RSG-Core  (Primary)
-    3. VORP Core (Supported)
-    4. RedEM:RP  (Optional — if detected)
-    5. QBR-Core  (Optional — if detected)
-    6. QR-Core   (Optional — if detected)
-    7. Standalone (Fallback — minimal functionality)
-]]
-
-Config.Framework = 'auto' -- 'auto' | 'lxr-core' | 'rsg-core' | 'vorp_core' | 'redem_roleplay' | 'qbr-core' | 'qr-core' | 'standalone'
+Config.Framework = 'auto'     -- 'auto' | 'lxr-core' | 'rsg-core' | 'vorp_core' | 'redem_roleplay' | 'qbr-core' | 'qr-core' | 'standalone'
 
 Config.FrameworkSettings = {
     ['lxr-core'] = {
@@ -139,36 +119,6 @@ Config.FrameworkSettings = {
             client = 'vorp:client:%s'
         }
     },
-    ['redem_roleplay'] = {
-        resource      = 'redem_roleplay',
-        notifications = 'redem',
-        inventory     = 'redem_inventory',
-        target        = 'redem_target',
-        events = {
-            server = 'redem:%s:server',
-            client = 'redem:%s:client'
-        }
-    },
-    ['qbr-core'] = {
-        resource      = 'qbr-core',
-        notifications = 'ox_lib',
-        inventory     = 'qbr-inventory',
-        target        = 'ox_target',
-        events = {
-            server = 'QBR:Server:%s',
-            client = 'QBR:Client:%s'
-        }
-    },
-    ['qr-core'] = {
-        resource      = 'qr-core',
-        notifications = 'ox_lib',
-        inventory     = 'qr-inventory',
-        target        = 'ox_target',
-        events = {
-            server = 'QR:Server:%s',
-            client = 'QR:Client:%s'
-        }
-    },
     ['standalone'] = {
         notifications = 'print',
         inventory     = 'none',
@@ -180,758 +130,985 @@ Config.FrameworkSettings = {
 -- ████████████████████████ LANGUAGE CONFIGURATION ████████████████████████████████
 -- ████████████████████████████████████████████████████████████████████████████████
 
-Config.Lang = 'en' -- Active language: 'en' | 'ka'
+Config.Lang = 'en'   -- 'en' | 'ka'
 
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ DEBUG & DEVELOPER FLAGS ███████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.Debug = false -- Enable debug logging (disable on production)
-
-Config.Dev = {
-    SkipNameGuard     = false, -- ⚠ NEVER set true in production — bypasses resource name protection
-    LogFrameworkInit  = false, -- Log framework detection steps
-    VerboseEvents     = false, -- Log all fired events
-    DisableRateLimits = false  -- Disable rate-limiting on events (testing only)
-}
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ ADMINISTRATION & ACCESS ███████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.Admin = {
-    AcePermission            = 'ranch.admin',
-    Identifiers              = {
-        -- ['license:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'] = true,
+Config.Locale = {
+    en = {
+        action_success        = 'Action completed.',
+        action_failed         = 'Action failed. Try again.',
+        no_permission         = 'You do not have permission.',
+        cooldown_active       = 'Please wait before trying again.',
+        not_enough_money      = 'Not enough cash.',
+        ranch_created         = 'Ranch created.',
+        ranch_deleted         = 'Ranch deleted.',
+        ranch_transferred     = 'Ranch ownership transferred.',
+        ranch_not_found       = 'Ranch not found.',
+        not_owner             = 'You are not the owner of this ranch.',
+        worker_hired          = 'Worker hired.',
+        worker_fired          = 'Worker dismissed.',
+        worker_not_employed   = 'That player does not work here.',
+        animal_added          = 'Animal added to the herd.',
+        animal_removed        = 'Animal removed.',
+        animal_died           = 'An animal has died.',
+        animal_born           = 'A new animal was born.',
+        contract_accepted     = 'Contract accepted.',
+        contract_completed    = 'Contract completed. Payment deposited.',
+        contract_expired      = 'Contract expired.',
+        auction_started       = 'Auction started.',
+        auction_won           = 'Auction won.',
+        auction_outbid        = 'You were outbid.',
+        season_changed        = 'Season has changed.',
+        weather_changed       = 'Weather has changed.',
+        hazard_triggered      = 'A hazard struck the frontier.',
+        ui_opened             = 'Ranch journal opened.',
+        ui_closed             = 'Ranch journal closed.',
+        xp_gained             = 'Experience gained.',
+        level_up              = 'Skill level increased.',
+        invalid_species       = 'Invalid species.',
+        invalid_role          = 'Invalid role.',
+        invalid_ranch         = 'Invalid ranch.',
+        zone_created          = 'Zone created.',
+        zone_saved            = 'Zone saved.',
+        zone_cancelled        = 'Zone creation cancelled.',
+        prop_placed           = 'Prop placed.',
+        prop_removed          = 'Prop removed.',
+        rate_limited          = 'Slow down — too many actions.',
+        server_busy           = 'Server busy, try again shortly.'
     },
-    AllowConsole             = true,
-    AllowOfflineAssignment   = true,
-    CommandRateLimitSeconds  = 2,
-    AuditLog = {
-        Enabled     = true,
-        RollingDays = 30
-    }
-}
-
-Config.IdentifierPriority = { 'license', 'citizenid', 'cid', 'discord', 'steam' }
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ DISCORD INTEGRATION ███████████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.Discord = {
-    UseRoles              = true,
-    BotToken              = '',
-    GuildId               = '',
-    OwnershipRolePrefix   = 'Ranch Owner - ',
-    StaffRoleIds          = {},
-    AlertChannelId        = '',
-    WebhookUrl            = '',
-    SyncOnJoin            = true,
-    SyncIntervalMinutes   = 15,
-    TransferRoleOnSale    = true,
-    ArchiveRoleOnDelete   = true
-}
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ STORAGE CONFIGURATION █████████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.Storage = {
-    Files = {
-        Ranches     = 'data/ranches.json',
-        Vegetation  = 'data/vegetation.json',
-        Animals     = 'data/animals.json',
-        Workforce   = 'data/workforce.json',
-        Production  = 'data/production.json',
-        Environment = 'data/environment.json',
-        Economy     = 'data/economy.json',
-        Progression = 'data/progression.json'
-    },
-    AutoPersistInterval = 120
-}
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ RANCH SETTINGS ████████████████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.Ranches = {
-    MaxPerPlayer                 = 4,
-    AutoCreateDiscordRoles       = true,
-    AllowCitizenIdFallback       = true,
-    AllowIdTransferFromSource    = true,
-    RequireLandSurveyForExpansion = true,
-    ExpansionCostPerAcre         = 125,
-    MergeCooldownHours           = 12,
-    DefaultMetadata = {
-        cleanliness = 0.75,
-        feedStores = {
-            hay     = 500,
-            grain   = 300,
-            silage  = 200,
-            mineral = 100
-        },
-        utilities = {
-            water        = true,
-            windmill     = true,
-            smokehouse   = false,
-            dairy        = false,
-            shearingShed = false,
-            coop         = false,
-            pigPen       = false
-        },
-        maintenance = {
-            structuralIntegrity = 0.9,
-            fireRisk            = 0.2,
-            floodRisk           = 0.15,
-            predatorRisk        = 0.25
-        },
-        workforce = {
-            morale  = 0.8,
-            fatigue = 0.2,
-            roster  = {}
-        },
-        ledger = {
-            balance       = 0,
-            insuranceTier = 'standard',
-            debts         = {},
-            contracts     = {}
-        }
-    },
-    Upgrades = {
-        barns = {
-            { id = 'basic_barn',      capacity = 10, cleanliness = 0.5 },
-            { id = 'reinforced_barn', capacity = 20, cleanliness = 0.7 },
-            { id = 'sanitized_barn',  capacity = 30, cleanliness = 0.9 }
-        },
-        coops = {
-            { id = 'starter_coop',   capacity = 12, warmth = 0.6 },
-            { id = 'insulated_coop', capacity = 24, warmth = 0.8 }
-        },
-        pens = {
-            pigPen  = { id = 'hog_pen',  cleanliness = 0.6, drainage = 0.5 },
-            goatPen = { id = 'goat_pen', cleanliness = 0.7, drainage = 0.7 }
-        },
-        utilities = {
-            windmill   = { power = 10, upkeep = 5 },
-            waterTower = { capacity = 1000, upkeep = 4 },
-            bellTower  = { range = 120, moraleBonus = 0.05 }
-        }
-    },
-    Decorations = {
-        signStyles      = { 'Classic', 'Modern', 'Rustic', 'Iron' },
-        bannerMaterials = { 'Canvas', 'Leather', 'Silk' },
-        lighting        = { 'Lantern', 'OilLamp', 'Electric' },
-        fencing         = { 'SplitRail', 'BarbedWire', 'StoneWall', 'Picket' }
-    },
-    Maintenance = {
-        DecayPerDay            = 0.01,
-        RepairTools            = { 'hammer', 'saw', 'brush' },
-        FireMitigationItems    = { 'bucket', 'pump', 'sandbag' },
-        FloodMitigationItems   = { 'sandbag', 'drainageDitch' },
-        PredatorMitigationItems = { 'reinforcedFence', 'guardDog', 'trap' }
-    },
-    Roles = {
-        Owner    = { permissions = { 'all' },                                       wageMultiplier = 0    },
-        Foreman  = { permissions = { 'assign_tasks', 'hire_fire', 'upgrade' },      wageMultiplier = 1.5  },
-        Hand     = { permissions = { 'basic_tasks' },                               wageMultiplier = 1.0  },
-        Wrangler = { permissions = { 'handle_horses', 'move_cattle' },              wageMultiplier = 1.2  },
-        Dairyman = { permissions = { 'process_dairy' },                             wageMultiplier = 1.1  },
-        Butcher  = { permissions = { 'process_meat' },                              wageMultiplier = 1.15 },
-        Vet      = { permissions = { 'treat_animals', 'diagnose' },                 wageMultiplier = 1.4  },
-        Teamster = { permissions = { 'operate_wagon', 'deliver_goods' },            wageMultiplier = 1.25 }
-    },
-    Morale = {
-        Bonuses = {
-            payOnTime      = 0.05,
-            goodMeals      = 0.03,
-            housingQuality = 0.02,
-            eventWins      = 0.08
-        },
-        Penalties = {
-            injuries        = -0.07,
-            unpaidWages     = -0.1,
-            predatorAttack  = -0.05,
-            accidents       = -0.06
-        }
+    ka = {
+        action_success        = 'მოქმედება დასრულდა.',
+        action_failed         = 'მოქმედება ვერ შესრულდა. სცადეთ თავიდან.',
+        no_permission         = 'თქვენ არ გაქვთ ამის უფლება.',
+        cooldown_active       = 'გთხოვთ დაელოდოთ.',
+        not_enough_money      = 'თქვენ არ გაქვთ საკმარისი თანხა.',
+        ranch_created         = 'რანჩო შექმნილია.',
+        ranch_deleted         = 'რანჩო წაიშალა.',
+        ranch_transferred     = 'მფლობელობა გადაეცა.',
+        ranch_not_found       = 'რანჩო ვერ მოიძებნა.',
+        not_owner             = 'თქვენ არ ხართ ამ რანჩოს მფლობელი.',
+        worker_hired          = 'მუშა აყვანილია.',
+        worker_fired          = 'მუშა გათავისუფლებულია.',
+        worker_not_employed   = 'ეს მოთამაშე აქ არ მუშაობს.',
+        animal_added          = 'ცხოველი ჯოგში დაემატა.',
+        animal_removed        = 'ცხოველი წაიშალა.',
+        animal_died           = 'ცხოველი დაიღუპა.',
+        animal_born           = 'ახალი ცხოველი დაიბადა.',
+        contract_accepted     = 'კონტრაქტი მიღებულია.',
+        contract_completed    = 'კონტრაქტი დასრულდა. თანხა ჩაირიცხა.',
+        contract_expired      = 'კონტრაქტი ამოიწურა.',
+        auction_started       = 'აუქციონი დაიწყო.',
+        auction_won           = 'აუქციონი მოიგეთ.',
+        auction_outbid        = 'თქვენი ფსონი გადააჭარბეს.',
+        season_changed        = 'სეზონი შეიცვალა.',
+        weather_changed       = 'ამინდი შეიცვალა.',
+        hazard_triggered      = 'საფრთხე ჩამოწვა საზღვარზე.',
+        ui_opened             = 'რანჩოს ჟურნალი გაიხსნა.',
+        ui_closed             = 'რანჩოს ჟურნალი დაიხურა.',
+        xp_gained             = 'გამოცდილება მოპოვებული.',
+        level_up              = 'უნარის დონე გაიზარდა.',
+        invalid_species       = 'არასწორი სახეობა.',
+        invalid_role          = 'არასწორი როლი.',
+        invalid_ranch         = 'არასწორი რანჩო.',
+        zone_created          = 'ზონა შექმნილია.',
+        zone_saved            = 'ზონა შენახულია.',
+        zone_cancelled        = 'ზონის შექმნა გაუქმდა.',
+        prop_placed           = 'ობიექტი დადგმულია.',
+        prop_removed          = 'ობიექტი მოხსნილია.',
+        rate_limited          = 'ნელა — ძალიან ბევრი მოქმედება.',
+        server_busy           = 'სერვერი დატვირთულია, სცადეთ თავიდან.'
     }
 }
 
 -- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ ZONING, VEGETATION & MAPPING ██████████████████████████
+-- ████████████████████████ GENERAL SETTINGS ██████████████████████████████████████
 -- ████████████████████████████████████████████████████████████████████████████████
 
-Config.ZoneDefaults = {
-    VegetationState     = 1.0,
-    WildlifeDensity     = 1.0,
-    SoilFertility       = 1.0,
-    IrrigationLevel     = 0.5,
-    PestPressure        = 0.1,
-    GrazingRotationDays = 5
-}
-
-Config.Zoning = {
-    EnablePZCreate           = true,
-    CreatorCommand           = 'pzcreate',
-    SaveCommand              = 'pzsave',
-    CancelCommand            = 'pzcancel',
-    PreviewBlipSprite        = 1873519383,
-    PreviewBlipColor         = 0,
-    MaxPoints                = 40,
-    RequireElevationSamples  = true,
-    AutoSnapToTerrain        = true,
-    PromptOverrides = {
-        start   = 'Press ~INPUT_MULTIPLAYER_INFO~ to add zone points',
-        confirm = 'Press ~INPUT_FRONTEND_ACCEPT~ to confirm zone'
-    }
-}
-
-Config.Props = {
-    PlacerCommand  = 'ranchprop',
-    RemoverCommand = 'ranchpropdel',
-    RotateLeftKey  = 174,
-    RotateRightKey = 175,
-    ElevateUpKey   = 172,
-    ElevateDownKey = 173,
-    GridSnapSize   = 0.25,
-    UsableProps = {
-        ['p_barrel03x']     = { label = 'Water Barrel',    type = 'utility', interactions = { 'Fill', 'Clean' }        },
-        ['p_haybale02x']    = { label = 'Hay Bale',        type = 'fodder',  interactions = { 'Pitchfork', 'Stack' }   },
-        ['p_trough01x']     = { label = 'Feeding Trough',  type = 'utility', interactions = { 'Fill', 'Scrub' }        },
-        ['p_barnlantern01x'] = { label = 'Lantern',        type = 'lighting', interactions = { 'Light', 'Extinguish' } }
-    }
-}
-
-Config.MappingPrompts = {
-    ZoneCreation   = 'Document fence lines, pasture rotations, and hazard zones.',
-    PropUsage      = 'Place usable props for immersive chores and task mini-games.',
-    VegetationPaint = 'Use vegetation modifiers to express seasonal regrowth and damage.'
+Config.General = {
+    targetDistance    = 3.0,    -- Interaction distance (world units)
+    enableSounds      = true,   -- Play UI and world sound effects
+    enableParticles   = true,   -- Environmental particle FX (dust, rain splash)
+    enableBlips       = true,   -- Show ranch blips on the map
+    blipSprite        = -1420722221,  -- Ranch map blip sprite hash
+    blipScale         = 0.3,
+    ownerOnlyUI       = false,  -- If true, non-owners cannot open the NUI on a ranch
+    allowMultiOwner   = false,  -- If true, co-owners can manage ranches
+    autoSaveInterval  = 300000  -- ms between auto-saves (5 minutes)
 }
 
 -- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ ENVIRONMENT & WORLD STATE █████████████████████████████
+-- ████████████████████████ KEYS CONFIGURATION ████████████████████████████████████
 -- ████████████████████████████████████████████████████████████████████████████████
 
-Config.Environment = {
-    SeasonLengthMinutes = 120,
-    SeasonSequence      = { 'spring', 'summer', 'autumn', 'winter' },
-    Seasons = {
-        spring = { temperature = { min = 40, max = 70 },  precipitationChance = 0.35, floodRisk = 0.2,   cropBonus = 0.15,    pastureRegrowth = 0.25 },
-        summer = { temperature = { min = 75, max = 105 }, precipitationChance = 0.1,  droughtRisk = 0.4, cropPenalty = -0.2,  wildfireRisk = 0.3    },
-        autumn = { temperature = { min = 50, max = 80 },  precipitationChance = 0.25, harvestBonus = 0.2, ruttingSeason = true, pestMigration = 0.1  },
-        winter = { temperature = { min = 5,  max = 35 },  precipitationChance = 0.4,  blizzardRisk = 0.35, feedDemandMultiplier = 1.4, diseaseRisk = 0.25 }
+Config.Keys = {
+    openUI          = 0x760A9C6F,   -- G — open ranch journal (primary NUI)
+    closeUI         = 0xCEFD9220,   -- ESC — always closes UI
+    interact        = 0x760A9C6F,   -- G — interact with ranch prompts
+    cancel          = 0x8CC9CD42,   -- X — cancel action
+    mapOpenUI       = 'F5',         -- RegisterKeyMapping fallback
+    propPlaceAccept = 0x07CE1E61,   -- ENTER — confirm prop placement
+    propRotateL     = 0xE6F612E4,   -- Q
+    propRotateR     = 0x1CE6D9EB    -- E
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ TIMING & COOLDOWNS ████████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+Config.Cooldowns = {
+    globalCooldown        = 1000,     -- ms between any two actions from same player
+    uiRefreshMin          = 5000,     -- Minimum ms between NUI data pulls per player
+    contractAccept        = 60000,    -- 1 min between accepting contracts
+    auctionBidMin         = 2000,     -- 2s minimum between bids
+    animalInteract        = 3000,     -- 3s between feed/water/groom per animal
+    breedingAttempt       = 86400000, -- 24h between breeding attempts per pair (real time)
+    taskAssign            = 10000,    -- 10s between task assigns (admin/foreman)
+    propPlace             = 2000,     -- 2s between prop placements
+    zoneCreate            = 5000      -- 5s between zone create commands
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ ANIMATION CONFIGURATION ███████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+-- Find more at: https://github.com/femga/rdr3_discoveries/blob/master/animations/ingameanims/ingameanims_list.lua
+
+Config.Animation = {
+    feedAnimal = {
+        dict = 'amb_rest@world_human_feed_pigs@male_a@idle_a',
+        anim = 'idle_a',
+        flag = 1,           -- Looped
+        duration = 4000
     },
-    WeatherPatterns = {
-        clear = { weight = 40, duration = { min = 15, max = 45 } },
-        rain  = { weight = 25, duration = { min = 10, max = 30 } },
-        storm = { weight = 10, duration = { min = 5,  max = 15 }, hazard = 'lightning' },
-        snow  = { weight = 15, duration = { min = 10, max = 40 } },
-        fog   = { weight = 10, duration = { min = 8,  max = 20 } }
+    milkCow = {
+        dict = 'amb_work@world_human_milk_cow@male_a@idle_a',
+        anim = 'idle_a',
+        flag = 1,
+        duration = 8000
     },
-    Hazards = {
-        lightning = { ignitionChance = 0.1,  barnFireDamage = 0.25, notification = 'Lightning storm! Secure the barns.',                             randomChance = 0.08 },
-        flood     = { livestockRisk = 0.2,   cropDamage = 0.35,     notification = 'Floodwaters rising—move stock to high ground!', debrisSpawn = true, randomChance = 0.05 },
-        drought   = { pasturePenalty = 0.5,  milkYieldPenalty = 0.3, waterConsumptionBonus = 0.4, notification = 'Drought settling in. Ration water supplies.', randomChance = 0.06 },
-        blizzard  = { feedDemand = 0.5,      frostbiteRisk = 0.2,   structureDamage = 0.15,  notification = 'Blizzard inbound! Shelter animals immediately.', randomChance = 0.04 },
-        duststorm = { suffocationRisk = 0.35, buildingDamage = 0.1,  notification = 'Dust storm approaching—cover troughs and bring stock inside!',  randomChance = 0.05 }
+    shearSheep = {
+        dict = 'amb_work@world_human_shear_sheep@male_a@idle_a',
+        anim = 'idle_a',
+        flag = 1,
+        duration = 7000
     },
-    Wildlife = {
-        deer    = { curiosityRange = 80,  grazingPenalty = 0.05 },
-        wolves  = { raidChanceNight = 0.2, packSize = { 3, 6 } },
-        coyotes = { raidChickensChance = 0.3 },
-        rodents = { grainSpoilRate = 0.1, deterrent = 'barn_cat' }
+    brushHorse = {
+        dict = 'script_story@gng1@ig@ig_7_grooming_the_horse',
+        anim = 'idle_player',
+        flag = 1,
+        duration = 6000
     },
-    Soil = {
-        FertilityDecayPerHarvest = 0.12,
-        OvergrazePenalty         = 0.3,
-        RecoveryPerManure        = 0.05,
-        CropRotationBonus        = 0.2
+    openJournal = {
+        dict = 'script_common@other@unapproved',
+        anim = 'medic_kneel_enter',
+        flag = 0,
+        duration = 1200
     },
-    Water = {
-        BaseConsumptionPerAnimal   = 10,
-        DroughtMultiplier          = 1.4,
-        FloodContaminationChance   = 0.25
-    },
-    Astronomy = {
-        MeteorShowers  = { enabled = true, frequencyHours = 72, bonus = 'morale' },
-        EclipseEvents  = { enabled = true, effect = 'haunted', durationMinutes = 10 }
-    },
-    AmbientAudio = {
-        EnableDynamicTracks = true,
-        TrackSets = {
-            spring = 'audio/spring_mix.ogg',
-            summer = 'audio/summer_mix.ogg',
-            autumn = 'audio/autumn_mix.ogg',
-            winter = 'audio/winter_mix.ogg'
-        }
-    },
-    UpdateIntervals = {
-        WeatherMinutes  = 10,
-        HazardMinutes   = 15,
-        WildlifeMinutes = 20
+    placeProp = {
+        dict = 'amb_work@world_human_crouch_inspect@male_a@idle_a',
+        anim = 'idle_a',
+        flag = 1,
+        duration = 2500
     }
 }
 
 -- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ LIVESTOCK, GENETICS & CARE ████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.Livestock = {
-    NeedsTickMinutes  = 15,
-    MemoryDecayMinutes = 120,
-    TrustThresholds   = { hostile = 0.2, wary = 0.45, calm = 0.7, bonded = 0.9 },
-    Species = {
-        cattle   = { label = 'Cattle',      gestationDays = 9,  yields = { milk = 6, beef = 4, manure = 5 },      preferredPasture = 'grass',    genetics = { milkYield = { 0.8, 1.2 }, coatColor = { 'black', 'brown', 'speckled' } }, diseases = { 'hoof_rot', 'pox', 'parasites' }, temperament = { base = 0.6, aggression = 0.3 }, housing = 'barn'          },
-        horses   = { label = 'Horse',       gestationDays = 11, yields = { stamina = 1, haul = 1 },               preferredPasture = 'mixed',    genetics = { speed = { 0.85, 1.15 }, temperament = { 'calm', 'fiery', 'bold', 'stubborn' } }, diseases = { 'colic', 'ticks' }, temperament = { base = 0.5, aggression = 0.4 }, housing = 'stable', training = { groundwork = true, riding = true, pulling = true } },
-        sheep    = { label = 'Sheep',       gestationDays = 5,  yields = { wool = 8, manure = 2 },                preferredPasture = 'clover',   genetics = { woolQuality = { 0.9, 1.3 }, color = { 'white', 'black', 'brown' } }, diseases = { 'parasites', 'pox' }, temperament = { base = 0.7, aggression = 0.1 }, housing = 'shearing_shed' },
-        goats    = { label = 'Goat',        gestationDays = 5,  yields = { milk = 4, meat = 2 },                  preferredPasture = 'brush',    genetics = { milkFat = { 0.9, 1.3 } }, diseases = { 'ticks', 'parasites' }, temperament = { base = 0.65, aggression = 0.2 }, housing = 'goat_pen'     },
-        pigs     = { label = 'Pig',         gestationDays = 4,  yields = { meat = 8, fat = 6 },                   preferredPasture = 'mud',      genetics = { marbling = { 0.8, 1.4 } }, diseases = { 'pox', 'parasites' }, temperament = { base = 0.4, aggression = 0.35 }, housing = 'pig_pen'      },
-        chickens = { label = 'Chicken',     gestationDays = 1,  yields = { eggs = 12, feathers = 6 },             preferredPasture = 'yard',     genetics = { eggYield = { 0.7, 1.5 }, color = { 'white', 'brown', 'speckled' } }, diseases = { 'pox' }, temperament = { base = 0.8, aggression = 0.05 }, housing = 'coop'          },
-        ducks    = { label = 'Duck',        gestationDays = 1,  yields = { eggs = 8, down = 5 },                  preferredPasture = 'pond',     genetics = { eggWeight = { 0.8, 1.4 } }, diseases = { 'parasites' }, temperament = { base = 0.75, aggression = 0.08 }, housing = 'pond'          },
-        turkeys  = { label = 'Turkey',      gestationDays = 1,  yields = { meat = 6, feathers = 7 },              preferredPasture = 'orchard',  genetics = { size = { 0.9, 1.4 } }, diseases = { 'pox' }, temperament = { base = 0.55, aggression = 0.25 }, housing = 'yard'          },
-        dogs     = { label = 'Dog',         gestationDays = 2,  yields = { loyalty = 1 },                         preferredPasture = 'yard',     genetics = { loyalty = { 0.8, 1.4 } }, diseases = { 'ticks' }, temperament = { base = 0.9, aggression = 0.2 }, housing = 'kennel'        },
-        cats     = { label = 'Cat',         gestationDays = 2,  yields = { pestControl = 1 },                     preferredPasture = 'barn',     genetics = { hunting = { 0.9, 1.5 } }, diseases = { 'parasites' }, temperament = { base = 0.85, aggression = 0.15 }, housing = 'barn'         },
-        alpaca   = { label = 'Alpaca',      gestationDays = 7,  yields = { fiber = 5 },                           preferredPasture = 'highland', genetics = { fiberLength = { 1.0, 1.4 } }, diseases = { 'parasites' }, temperament = { base = 0.7, aggression = 0.12 }, housing = 'shearing_shed' },
-        bees     = { label = 'Bee Colony',  gestationDays = 0,  yields = { honey = 10, wax = 4 },                 preferredPasture = 'orchard',  genetics = { productivity = { 0.8, 1.6 } }, diseases = { 'mites' }, temperament = { base = 0.4, aggression = 0.6 }, housing = 'apiary'        },
-        rabbits  = { label = 'Rabbit',      gestationDays = 1,  yields = { fur = 6, meat = 3 },                   preferredPasture = 'burrow',   genetics = { litterSize = { 0.9, 1.5 } }, diseases = { 'parasites' }, temperament = { base = 0.7, aggression = 0.1 }, housing = 'hutch'         }
-    },
-    Needs = {
-        hunger      = { decayPerTick = 0.1,  feedTypes = { hay = true, grain = true } },
-        thirst      = { decayPerTick = 0.12, prefersCleanWater = true },
-        cleanliness = { decayPerTick = 0.05, bathingRequired = false },
-        stress      = { decayPerTick = 0.03, crowdingPenalty = 0.1 },
-        social      = { decayPerTick = 0.04, herdAnimals = true },
-        temperature = { tolerance = { min = 15, max = 85 }, shelterBonus = 0.25 }
-    },
-    Breeding = {
-        minTrustForBreeding  = 0.6,
-        inbreedingPenalty    = 0.35,
-        bloodlineBonus       = 0.2,
-        complicationChance   = 0.15,
-        VetRequiredThreshold = 0.5
-    },
-    Memory = {
-        kindnessBonus      = 0.1,
-        mistreatmentPenalty = 0.2,
-        treatDecay         = 0.01
-    }
-}
-
-Config.Healthcare = {
-    Diseases = {
-        hoof_rot  = { severity = 0.4,  treatment = 'hoof_scrub',        quarantineDays = 2              },
-        colic     = { severity = 0.6,  treatment = 'colic_tonic',        vetRequired = true              },
-        ticks     = { severity = 0.3,  treatment = 'tick_salve'                                          },
-        pox       = { severity = 0.5,  treatment = 'pox_vaccine',        contagious = true               },
-        parasites = { severity = 0.45, treatment = 'dewormer'                                             },
-        mites     = { severity = 0.25, treatment = 'smoke_fumigation'                                    }
-    },
-    Injuries = {
-        wagon_accident = { severity = 0.5, treatment = 'splint',   recoveryDays = 3                      },
-        predator_bite  = { severity = 0.7, treatment = 'stitch',   infectionRisk = 0.4                   },
-        broken_leg     = { severity = 0.8, treatment = 'cast',     recoveryDays = 7                      },
-        horn_gouge     = { severity = 0.6, treatment = 'bandage',  infectionRisk = 0.3                   }
-    },
-    Tools = {
-        salves     = { 'arnica', 'sage' },
-        tonics     = { 'colic_tonic', 'nerve_tonic' },
-        poultices  = { 'mud', 'herbal' },
-        bandages   = { 'linen', 'leather' },
-        splints    = { 'wood', 'iron' },
-        vaccines   = { 'pox', 'distemper' },
-        hoofPicks  = true,
-        horseshoes = { 'iron', 'steel', 'bronze' }
-    },
-    Farrier = {
-        enableMinigame      = true,
-        nailTolerance       = 0.2,
-        shoeTypes           = { 'standard', 'racing', 'draft', 'ice' },
-        visitFrequencyDays  = 14
-    }
-}
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ WORKFORCE & TASKS █████████████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.Workforce = {
-    EnableAIHands          = true,
-    DailyWageBase          = 8,
-    AccidentChance         = 0.08,
-    FatiguePerTask         = 0.12,
-    RestRecoveryPerHour    = 0.1,
-    MoraleDecayPerHour     = 0.02,
-    TaskBoard = {
-        MaxActiveTasks = 20,
-        TaskTypes = {
-            feeding     = { durationMinutes = 15, xp = 10 },
-            watering    = { durationMinutes = 10, xp = 8  },
-            mucking     = { durationMinutes = 20, xp = 12 },
-            milking     = { durationMinutes = 30, xp = 15 },
-            fenceRepair = { durationMinutes = 25, xp = 14 },
-            herding     = { durationMinutes = 35, xp = 18 }
-        },
-        CooldownMinutes = 30
-    },
-    Roles = Config.Ranches.Roles
-}
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ PRODUCTION & PROCESSING ███████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.ProductionChains = {
-    Dairy   = { milkYieldMultiplier = 1.0, butterAgingMinutes = 30, cheeseAgingHours = 24, humidityControl = true },
-    Meat    = { primeCutBonus = 0.2, spoilageChance = 0.15, wasteToByproduct = 0.4 },
-    Poultry = { incubatorDurationHours = 24, eggGradingQuality = { A = 0.9, B = 0.7, C = 0.5 } },
-    Fiber   = { washingLoss = 0.1, dyeingOptions = { 'indigo', 'madder', 'walnut' }, yarnQualityMultiplier = 1.2 },
-    Byproducts = {
-        manure   = { fertilizerValue = 0.3,  compostTimeHours = 12 },
-        bones    = { toolConversionRate = 0.5 },
-        hides    = { tanningDurationHours = 16 },
-        feathers = { fletchingValue = 0.4 }
-    },
-    Smoking = {
-        jerkyHours = 12,
-        baconHours = 10,
-        hamHours   = 14,
-        woodTypes  = { 'hickory', 'mesquite', 'apple' }
-    },
-    Brining = {
-        sausageHours           = 8,
-        saltConsumptionPerBatch = 5
-    }
-}
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ CROPS & FEED ██████████████████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.Crops = {
-    Forage = {
-        corn    = { growthDays = 5, yield = 40 },
-        oats    = { growthDays = 4, yield = 35 },
-        clover  = { growthDays = 3, yield = 25 },
-        sorghum = { growthDays = 6, yield = 45 },
-        alfalfa = { growthDays = 5, yield = 50 }
-    },
-    Storage = {
-        siloCapacity    = 1000,
-        spoilagePerDay  = 0.02,
-        hayBaleRatsChance = 0.2,
-        tarpBonus       = 0.3
-    },
-    WaterSystems = {
-        troughs   = { capacity = 120,  cleanlinessDecay = 0.05 },
-        wells     = { replenishPerHour = 40 },
-        windmills = { pumpRate = 25 },
-        handPumps = { pumpRate = 10 }
-    },
-    Fertilizer = {
-        manure   = { fertilityBonus = 0.15 },
-        compost  = { fertilityBonus = 0.2  },
-        boneMeal = { fertilityBonus = 0.25 }
-    }
-}
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ LAW, CRIME & REPUTATION ███████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.Law = {
-    Rustling = {
-        fenceCutTimeSeconds = 30,
-        rebrandTimeSeconds  = 45,
-        evidenceChance      = 0.4,
-        notifySheriff       = true
-    },
-    Sheriff = {
-        bountyReward             = { min = 25, max = 120 },
-        investigationTimeMinutes = 30,
-        courtSummonsDays         = 3
-    },
-    Insurance = {
-        tiers = {
-            basic    = { premium = 10, payout = 0.4 },
-            standard = { premium = 20, payout = 0.6 },
-            premium  = { premium = 35, payout = 0.8 }
-        },
-        predatorCoverage = true,
-        disasterCoverage = true
-    },
-    Reputation = {
-        tracks = {
-            honest     = { label = 'Honest Rancher' },
-            suspect    = { label = 'Rustler Suspect' },
-            cattleKing = { label = 'Cattle King' }
-        },
-        decayPerDay      = 0.02,
-        bonusPerContract = 0.05
-    }
-}
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ PREDATORS, BANDITS & EVENTS ███████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.Hazards = {
-    Predators = {
-        wolves  = { spawnChanceNight = 0.25, deterrents = { 'guardDog', 'torches' } },
-        cougars = { spawnChanceHills = 0.15, damage = 0.6 },
-        coyotes = { spawnChance = 0.3, target = 'chickens' },
-        bears   = { spawnChance = 0.05, penBreakChance = 0.4 }
-    },
-    Bandits = {
-        raidChance         = 0.08,
-        gangSizes          = { min = 3, max = 7 },
-        stealAmount        = { min = 1, max = 4 },
-        evidenceDropChance = 0.2
-    },
-    NaturalEvents = {
-        blizzard = { frequencyHours = 12 },
-        tornado  = { frequencyHours = 48, damage = 0.9 },
-        locust   = { frequencyHours = 36, cropDamage = 0.8 },
-        barnFire = { frequencyHours = 24, spreadChance = 0.4 },
-        drought  = { frequencyHours = 30, durationHours = 12 }
-    },
-    CommunityEvents = {
-        rodeo          = { frequencyHours = 72,  moraleBonus = 0.1,  reward = nil  },
-        countyFair     = { frequencyHours = 96,  reward = 150 },
-        harvestFestival = { frequencyHours = 120, cropBonus = 0.2 },
-        ranchDance     = { frequencyHours = 60,  moraleBonus = 0.08 }
-    },
-    Competitions = {
-        biggestBull  = { reward = 80  },
-        bestWool     = { reward = 60  },
-        fastestHorse = { reward = 100 }
-    }
-}
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ HORSE TRAINING & LOGISTICS ████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.Horses = {
-    Training = {
-        groundwork = { sessions = 5, staminaBonus = 0.1  },
-        riding     = { sessions = 7, staminaBonus = 0.15 },
-        pulling    = { sessions = 6, haulBonus = 0.2     },
-        obstacle   = { sessions = 8, controlBonus = 0.25 }
-    },
-    Bonding = {
-        levels = {
-            { label = 'Stranger',    requirement = 0   },
-            { label = 'Acquainted',  requirement = 200 },
-            { label = 'Partner',     requirement = 500 },
-            { label = 'Soulmate',    requirement = 900 }
-        },
-        bonuses = { stamina = 0.3, calmness = 0.4, commandResponse = 0.35 }
-    },
-    Tack = {
-        saddleDurability  = 0.02,
-        horseshoeBreakChance = 0.1,
-        bridleSnapChance  = 0.05
-    },
-    DraftTeams = {
-        teamSizes       = { 2, 4 },
-        staminaDrainPerLoad = 0.1,
-        synergyBonus    = 0.15
-    }
-}
-
-Config.Logistics = {
-    Wagons = {
-        hay  = { capacity = 40, breakdownChance = 0.1  },
-        milk = { capacity = 30, breakdownChance = 0.12 },
-        meat = { capacity = 35, breakdownChance = 0.14 },
-        tool = { capacity = 25, breakdownChance = 0.08 }
-    },
-    LoadInteraction = {
-        timePerItemSeconds   = 2,
-        weightAffectsHandling = true
-    },
-    Repairs = {
-        axleBreakChance  = 0.08,
-        wheelPopChance   = 0.1,
-        repairKits       = { 'axle_kit', 'wheel_kit' }
-    },
-    Railroad = {
-        enable                 = true,
-        carCapacity            = 20,
-        scheduleIntervalMinutes = 45,
-        bulkSaleBonus          = 0.2
-    }
-}
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ ECONOMY & MARKET ██████████████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.Economy = {
-    DynamicPricing = {
-        baseDemand = {
-            beef  = 1.0,
-            milk  = 1.0,
-            wool  = 1.0,
-            eggs  = 1.0,
-            hides = 1.0
-        },
-        seasonalModifiers = {
-            winter = { beef = 1.3, milk = 1.1  },
-            spring = { wool = 1.2, eggs = 1.3  },
-            summer = { hides = 1.1             },
-            autumn = { grain = 1.25            }
-        }
-    },
-    Contracts = {
-        maxActive        = 5,
-        townBoards       = { 'Valentine', 'Rhodes', 'Blackwater' },
-        expiryHours      = 24,
-        reputationBonus  = 0.05
-    },
-    Auctions = {
-        enable                  = true,
-        liveBidding             = true,
-        reservePriceModifier    = 0.8,
-        fraudDetection          = true,
-        minParticipants         = 3
-    },
-    Ledger = {
-        enableAccounting    = true,
-        trackExpenses       = true,
-        expenseCategories   = { 'wages', 'upkeep', 'feed', 'repairs', 'insurance' },
-        analyticsWindowDays = 30
-    }
-}
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ PROGRESSION & META ████████████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.Progression = {
-    XPPerContract   = 50,
-    XPPerBirth      = 30,
-    XPPerCompetition = 80,
-    LevelThresholds = { 0, 200, 500, 900, 1400, 2000 },
-    SkillTrees = {
-        Husbandry  = { tiers = 3, perks = { 'Better Breeding',  'Efficient Feeding', 'Calm Whisper'     } },
-        Veterinary = { tiers = 3, perks = { 'Faster Diagnosis', 'Gentle Hands',      'Field Surgery'    } },
-        Teamster   = { tiers = 3, perks = { 'Sure Footing',     'Load Master',       'Express Delivery' } },
-        Wrangler   = { tiers = 3, perks = { 'Quick Lasso',      'Herd Sense',        'Stampede Control' } },
-        Butcher    = { tiers = 3, perks = { 'Prime Cut',        'Clean Carcass',     'Smoke Master'     } }
-    },
-    Achievements = {
-        calves   = { goal = 100, reward = 'Golden Branding Iron' },
-        rustler  = { goal = 10,  reward = "Sheriff's Favor"      },
-        cheese   = { goal = 200, reward = 'Master Cheesemaker'   }
-    },
-    Legacy = {
-        enableHeirs       = true,
-        heirCount         = 3,
-        inheritanceTax    = 0.1,
-        heirPerkOptions   = { 'Legacy Brand', 'Old Money', 'Tall Tales' }
-    }
-}
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ UI & TOOLS ████████████████████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.UI = {
-    EnableLedgerApp  = true,
-    MapOverlay       = true,
-    StatusIcons      = true,
-    PhotoCatalog     = true,
-    AuctionUI        = true,
-    DiscordWebhooks  = true,
-    VoiceCommands = {
-        enable      = true,
-        whistleDog  = true,
-        callCattle  = true
-    },
-    Tutorials = {
-        introMissions      = true,
-        contextualPrompts  = true,
-        knowledgeBaseLinks = {
-            'https://redm.munafio.com/blog',
-            'https://forum.cfx.re/c/redm-releases/60'
-        }
-    }
-}
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ ADMIN MENU CONFIGURATION ██████████████████████████████
+-- ████████████████████████ LIVESTOCK CONFIGURATION ███████████████████████████████
 -- ████████████████████████████████████████████████████████████████████████████████
 
 --[[
-    Ranch Admin Menu — in-game ox_lib context menu for ranch owners and server admins.
-
-    PERMISSIONS
-    ──────────────────────────────────────────────────────────────────────────────
-    Server admin  (Config.Admin.AcePermission or Identifiers whitelist):
-        Full access to every option including create / delete / transfer / season
-        / weather / worker assignment / task creation / contract generation.
-
-    Ranch owner   (player whose identifier matches `owner` on a ranch record):
-        Can manage their own ranches: place props, create zones, add animals,
-        queue hazards, and grant XP to ranches they own.
-
-    GYZMO
-    ──────────────────────────────────────────────────────────────────────────────
-    When UseGyzmo = true and the configured GyzmoResource is started, a visual
-    3-D manipulation handle (gyzmo) is activated after a prop is spawned.
-    The player can move/rotate the prop and press ENTER to confirm or BACKSPACE
-    to cancel.  If the gyzmo resource is absent, the system falls back to
-    arrow-key controls (RotateLeft / RotateRight / ElevateUp / ElevateDown
-    defined in Config.Props) with the same confirm / cancel keys.
+    Per-species needs decay (per real-time hour). Values above 0 drain the stat.
+    An animal at 0 health eventually dies unless intervention occurs.
+    gestationHours is shortened from real gestation for gameplay pacing.
 ]]
 
-Config.AdminMenu = {
-    -- Toggle the entire admin-menu feature on or off.
-    Enabled       = true,
-
-    -- Chat command that opens the menu.
-    Command       = 'ranchadmin',
-
-    -- Default keybind registered via RegisterKeyMapping.
-    -- Players can remap this in their GTA/RedM key bindings.
-    Keybind       = 'F6',
-
-    -- Whether to activate the gyzmo prop-placement mode when placing props.
-    -- Requires the GyzmoResource listed below to be running on the server.
-    UseGyzmo      = true,
-
-    -- Resource name of the gyzmo / prop-manipulation library.
-    -- Common values: 'gyzmo'  (mkafka/gyzmo) or 'prop_placement'
-    GyzmoResource = 'gyzmo',
-}
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ PREMIUM & EXTRAS ██████████████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-Config.GodExtras = {
-    HauntedEvents = {
-        enabled          = true,
-        ghostCowChance   = 0.02,
-        cursedFenceChance = 0.01
-    },
-    Tebex = {
-        enabled    = false,
-        productIds = {
-            ranchBrandPack  = '',
-            exclusiveWagon  = '',
-            exoticLivestock = ''
+Config.Livestock = {
+    cattle = {
+        label         = 'Cattle',
+        maxPerRanch   = 80,
+        baseSellPrice = 140,        -- Sold as meat/leather
+        needsDecay    = { hunger = 0.12, thirst = 0.18, cleanliness = 0.05 },
+        breedingCooldownHours = 48,
+        gestationHours        = 36,
+        litterMin     = 1,
+        litterMax     = 1,
+        lifespanDays  = 90,
+        adultAgeDays  = 6,
+        products = {
+            { item = 'rawbeef',   minAge = 6, yield = { 3, 7 } },
+            { item = 'leather',   minAge = 6, yield = { 1, 2 } },
+            { item = 'milk_jug',  minAge = 6, yield = { 1, 3 }, femaleOnly = true, recurring = true }
         }
     },
-    VRHooks = {
-        enabled       = false,
-        spectatorMode = true,
-        photoMode     = true
+    horse = {
+        label         = 'Horse',
+        maxPerRanch   = 40,
+        baseSellPrice = 350,
+        needsDecay    = { hunger = 0.10, thirst = 0.15, cleanliness = 0.07 },
+        breedingCooldownHours = 72,
+        gestationHours        = 48,
+        litterMin     = 1,
+        litterMax     = 1,
+        lifespanDays  = 120,
+        adultAgeDays  = 10,
+        trustGainPerGroom = 5,
+        products = {
+            -- Horses are ridden, not harvested — products table intentionally empty of slaughter yields.
+            { item = 'horse_hair', minAge = 10, yield = { 1, 2 }, recurring = true }
+        }
+    },
+    sheep = {
+        label         = 'Sheep',
+        maxPerRanch   = 120,
+        baseSellPrice = 75,
+        needsDecay    = { hunger = 0.14, thirst = 0.16, cleanliness = 0.08 },
+        breedingCooldownHours = 30,
+        gestationHours        = 24,
+        litterMin     = 1,
+        litterMax     = 2,
+        lifespanDays  = 70,
+        adultAgeDays  = 4,
+        products = {
+            { item = 'raw_mutton', minAge = 4, yield = { 2, 4 } },
+            { item = 'wool',       minAge = 4, yield = { 2, 5 }, recurring = true }
+        }
+    },
+    pig = {
+        label         = 'Pig',
+        maxPerRanch   = 60,
+        baseSellPrice = 95,
+        needsDecay    = { hunger = 0.20, thirst = 0.14, cleanliness = 0.12 },
+        breedingCooldownHours = 24,
+        gestationHours        = 18,
+        litterMin     = 3,
+        litterMax     = 8,
+        lifespanDays  = 60,
+        adultAgeDays  = 3,
+        products = {
+            { item = 'raw_pork',   minAge = 3, yield = { 3, 6 } },
+            { item = 'pig_hide',   minAge = 3, yield = { 1, 2 } }
+        }
+    },
+    chicken = {
+        label         = 'Chicken',
+        maxPerRanch   = 200,
+        baseSellPrice = 18,
+        needsDecay    = { hunger = 0.08, thirst = 0.10, cleanliness = 0.04 },
+        breedingCooldownHours = 8,
+        gestationHours        = 6,
+        litterMin     = 4,
+        litterMax     = 12,
+        lifespanDays  = 40,
+        adultAgeDays  = 2,
+        products = {
+            { item = 'raw_chicken', minAge = 2, yield = { 1, 2 } },
+            { item = 'chicken_egg', minAge = 2, yield = { 1, 3 }, recurring = true, recurEveryHours = 6, femaleOnly = true }
+        }
+    },
+    goat = {
+        label         = 'Goat',
+        maxPerRanch   = 80,
+        baseSellPrice = 65,
+        needsDecay    = { hunger = 0.13, thirst = 0.14, cleanliness = 0.07 },
+        breedingCooldownHours = 24,
+        gestationHours        = 20,
+        litterMin     = 1,
+        litterMax     = 2,
+        lifespanDays  = 65,
+        adultAgeDays  = 3,
+        products = {
+            { item = 'raw_goat_meat', minAge = 3, yield = { 2, 4 } },
+            { item = 'goat_milk',     minAge = 3, yield = { 1, 2 }, recurring = true, femaleOnly = true }
+        }
     }
 }
 
 -- ████████████████████████████████████████████████████████████████████████████████
--- 🐺 wolves.land — The Land of Wolves
--- © 2026 iBoss21 / The Lux Empire | All Rights Reserved
+-- ████████████████████████ BREEDING & GENETICS ███████████████████████████████████
 -- ████████████████████████████████████████████████████████████████████████████████
+
+Config.Breeding = {
+    enabled                 = true,
+    requireSameSpecies      = true,
+    requireDifferentSex     = true,
+    offspringHealthBase     = 80,
+    offspringHealthVariance = 15,   -- ±15 from base
+    traitInheritanceChance  = 0.60, -- 60% trait passes to offspring
+    possibleTraits = {
+        'hardy', 'gentle', 'fast', 'strong', 'fertile',
+        'sickly', 'stubborn', 'nervous', 'clever', 'docile'
+    },
+    traitBonus = {
+        hardy    = { needsDecayMult = 0.75 },
+        gentle   = { trustGainMult  = 1.25 },
+        fast     = { sellPriceMult  = 1.15 },
+        strong   = { sellPriceMult  = 1.20 },
+        fertile  = { breedingCdMult = 0.70 },
+        sickly   = { needsDecayMult = 1.30 },
+        stubborn = { trustGainMult  = 0.70 },
+        nervous  = { sellPriceMult  = 0.90 },
+        clever   = { xpGainMult     = 1.15 },
+        docile   = { trustGainMult  = 1.15 }
+    }
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ WORKFORCE CONFIGURATION ███████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+Config.Workforce = {
+    enabled             = true,
+    maxWorkersPerRanch  = 20,
+    defaultMorale       = 70,
+    defaultFatigue      = 0,
+    fatigueGainPerTask  = 8,        -- 0-100 scale
+    moraleDecayPerDay   = 5,
+    paydayIntervalHours = 24,       -- Real hours between auto-payouts
+
+    roles = {
+        Owner = {
+            label       = 'Owner',
+            rank        = 100,
+            wage        = 0,
+            canHire     = true,
+            canFire     = true,
+            canAssign   = true,
+            canUpgrade  = true,
+            canSellAnimal = true,
+            canBuyAnimal  = true
+        },
+        Foreman = {
+            label       = 'Foreman',
+            rank        = 80,
+            wage        = 225,
+            canHire     = true,
+            canFire     = true,
+            canAssign   = true,
+            canUpgrade  = false,
+            canSellAnimal = true,
+            canBuyAnimal  = false
+        },
+        Hand = {
+            label   = 'Ranch Hand',
+            rank    = 40,
+            wage    = 110,
+            canAssign = false
+        },
+        Wrangler = {
+            label   = 'Wrangler',
+            rank    = 50,
+            wage    = 140,
+            specialty = 'horse'
+        },
+        Dairyman = {
+            label   = 'Dairyman',
+            rank    = 50,
+            wage    = 140,
+            specialty = 'cattle'
+        },
+        Butcher = {
+            label   = 'Butcher',
+            rank    = 55,
+            wage    = 160,
+            specialty = 'slaughter'
+        },
+        Vet = {
+            label   = 'Veterinarian',
+            rank    = 70,
+            wage    = 220,
+            specialty = 'medical'
+        },
+        Teamster = {
+            label   = 'Teamster',
+            rank    = 55,
+            wage    = 155,
+            specialty = 'transport'
+        }
+    }
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ DISCORD ROLE SYNC █████████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+Config.Discord = {
+    enabled              = false,           -- Master toggle
+    botToken             = '',              -- Set in server.cfg instead — NEVER hardcode here
+    guildId              = '',
+    webhookUrl           = '',              -- Events webhook (ownership transfer, auctions, hazards)
+    syncRolesToWorkforce = true,            -- Auto-promote/demote when Discord role changes
+    roleMapping = {
+        -- discordRoleId = 'Workforce role name'
+        -- Example: ['1234567890123456789'] = 'Foreman',
+    },
+    transferRoleOnSale   = true,            -- Move roles from seller to buyer after auction win
+    notifyOnHazard       = true,
+    notifyOnAuction      = true,
+    notifyOnTransfer     = true,
+    notifyOnRanchDelete  = true
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ ENVIRONMENT & SEASONS █████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+Config.Environment = {
+    enabled            = true,
+    seasonLengthMinutes = 120,                              -- How long each season lasts (real minutes)
+    seasonSequence      = { 'spring', 'summer', 'autumn', 'winter' },
+
+    seasons = {
+        spring = {
+            label         = 'Spring',
+            tempRange     = { 8, 22 },        -- Celsius
+            pastureGrowth = 1.30,             -- Multiplier on vegetation regrowth
+            diseaseChance = 0.04,
+            weatherBias   = { clear = 0.50, rain = 0.35, storm = 0.10, fog = 0.05 }
+        },
+        summer = {
+            label         = 'Summer',
+            tempRange     = { 22, 38 },
+            pastureGrowth = 0.90,
+            diseaseChance = 0.06,
+            weatherBias   = { clear = 0.75, rain = 0.10, storm = 0.08, fog = 0.02, drought = 0.05 }
+        },
+        autumn = {
+            label         = 'Autumn',
+            tempRange     = { 4, 18 },
+            pastureGrowth = 0.75,
+            diseaseChance = 0.05,
+            weatherBias   = { clear = 0.45, rain = 0.30, fog = 0.15, storm = 0.10 }
+        },
+        winter = {
+            label         = 'Winter',
+            tempRange     = { -15, 4 },
+            pastureGrowth = 0.25,
+            diseaseChance = 0.08,
+            weatherBias   = { clear = 0.35, snow = 0.40, blizzard = 0.15, fog = 0.10 }
+        }
+    },
+
+    weatherCycleMinutes = 30,                              -- How often server rolls weather
+    weatherTypes = {
+        'clear', 'rain', 'storm', 'snow', 'blizzard', 'fog', 'drought', 'duststorm'
+    },
+
+    hazards = {
+        lightning = {
+            label    = 'Lightning Strike',
+            chance   = 0.02,   -- per weather roll during storm
+            damage   = { livestock = 15, structures = 0.05 },
+            allowedWeather = { 'storm', 'rain' }
+        },
+        flood = {
+            label    = 'Flood',
+            chance   = 0.015,
+            damage   = { livestock = 8, pasture = 0.10 },
+            allowedWeather = { 'storm', 'rain' }
+        },
+        drought = {
+            label    = 'Drought',
+            chance   = 0.01,
+            damage   = { pasture = 0.20, waterDecay = 2.0 },
+            allowedWeather = { 'clear', 'drought' }
+        },
+        blizzard = {
+            label    = 'Blizzard',
+            chance   = 0.02,
+            damage   = { livestock = 10, structures = 0.03 },
+            allowedWeather = { 'blizzard', 'snow' }
+        },
+        duststorm = {
+            label    = 'Dust Storm',
+            chance   = 0.01,
+            damage   = { livestock = 4, cleanlinessDecay = 2.0 },
+            allowedWeather = { 'clear', 'duststorm' }
+        }
+    },
+
+    soil = {
+        defaultFertility = 80,
+        depletionPerGraze = 0.5,
+        regrowthPerTick   = 1.0,
+        tickIntervalMinutes = 10
+    },
+
+    wildlife = {
+        enabled     = true,
+        predators   = { 'wolf', 'coyote', 'cougar' },
+        peaceful    = { 'deer', 'rabbit', 'pheasant' },
+        predatorAttackChance = 0.03,   -- per environment tick per ranch
+        predatorDamage       = { 1, 4 } -- animals killed per attack (min,max)
+    }
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ ECONOMY & PRICING █████████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+Config.Economy = {
+    enabled          = true,
+    currencyLabel    = '$',
+    useGold          = false,     -- wolves.land is cash-only — DO NOT enable
+    minPriceClamp    = 0.40,      -- Floor: 40% of base price
+    maxPriceClamp    = 1.60,      -- Ceiling: 160% of base price
+
+    baseDemand = {
+        beef = 1.0, milk = 1.0, wool = 1.0, eggs = 1.0,
+        pork = 1.0, mutton = 1.0, leather = 1.0, hides = 1.0,
+        horses = 1.0, chickens = 1.0
+    },
+
+    seasonalModifiers = {
+        spring = { beef = 1.00, milk = 1.10, wool = 0.80, eggs = 1.15, mutton = 0.95, leather = 1.00, pork = 1.00 },
+        summer = { beef = 0.95, milk = 1.15, wool = 0.65, eggs = 1.10, mutton = 0.90, leather = 1.05, pork = 1.00 },
+        autumn = { beef = 1.15, milk = 1.05, wool = 1.10, eggs = 1.00, mutton = 1.15, leather = 1.10, pork = 1.10 },
+        winter = { beef = 1.30, milk = 1.05, wool = 1.40, eggs = 0.95, mutton = 1.35, leather = 1.20, pork = 1.20 }
+    },
+
+    townBoards = {
+        Valentine = {
+            coords = vector3(-178.6, 628.1, 114.2),
+            heading = 92.0,
+            goods   = { 'beef', 'milk', 'eggs' }
+        },
+        Rhodes = {
+            coords = vector3(1229.5, -1291.9, 76.9),
+            heading = 178.0,
+            goods   = { 'pork', 'wool', 'leather' }
+        },
+        Blackwater = {
+            coords = vector3(-807.3, -1308.1, 43.6),
+            heading = 270.0,
+            goods   = { 'horses', 'beef', 'hides' }
+        },
+        SaintDenis = {
+            coords = vector3(2735.6, -1390.9, 46.4),
+            heading = 14.0,
+            goods   = { 'milk', 'eggs', 'mutton' }
+        },
+        Strawberry = {
+            coords = vector3(-1801.7, -362.0, 163.3),
+            heading = 38.0,
+            goods   = { 'chickens', 'wool' }
+        }
+    },
+
+    contracts = {
+        maxActivePerPlayer    = 5,
+        defaultDeadlineHours  = 48,
+        rewardBase            = 500,
+        rewardPerUnit         = 12,
+        penaltyOnFail         = 150,
+        rerollMinutes         = 60     -- Board refresh interval
+    },
+
+    auctions = {
+        enabled              = true,
+        durationMinutes      = 15,
+        minBidIncrementPct   = 0.05,     -- Minimum 5% bump
+        startingBidMult      = 0.80,     -- 80% of base sell price
+        maxConcurrentPerRanch = 3,
+        houseCutPct          = 0.05      -- 5% auction-house fee
+    },
+
+    productionChains = {
+        dairy = {
+            input  = { milk_jug = 4 },
+            output = { cheese_wheel = 1 },
+            timeMinutes = 30,
+            xpPerBatch  = 8
+        },
+        butcher = {
+            input  = { rawbeef = 2 },
+            output = { steak_cut = 1 },
+            timeMinutes = 12,
+            xpPerBatch  = 5
+        },
+        wool = {
+            input  = { wool = 5 },
+            output = { wool_bolt = 1 },
+            timeMinutes = 20,
+            xpPerBatch  = 4
+        }
+    }
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ PROGRESSION & SKILLS ██████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+Config.Progression = {
+    enabled         = true,
+    maxLevel        = 100,
+    xpCurveBase     = 100,
+    xpCurveExponent = 1.35,    -- xpToLevel(n) = base * n^exp
+
+    skills = {
+        Husbandry = {
+            label  = 'Husbandry',
+            description = 'Animal care, feeding, grooming',
+            bonuses = {
+                [10] = 'Animal needs decay 5% slower',
+                [25] = 'Animal needs decay 10% slower',
+                [50] = 'Breeding success +10%',
+                [75] = 'Offspring health +15',
+                [100] = 'Animal needs decay 25% slower'
+            }
+        },
+        Veterinary = {
+            label = 'Veterinary',
+            description = 'Disease treatment, injury care',
+            bonuses = {
+                [10] = 'Unlock basic medicine',
+                [25] = 'Disease recovery +15%',
+                [50] = 'Unlock tonics and salves',
+                [75] = 'Surgery success +20%',
+                [100] = 'Mortality chance halved'
+            }
+        },
+        Wrangler = {
+            label = 'Wrangler',
+            description = 'Horse handling, trust, taming',
+            bonuses = {
+                [10] = 'Trust gain +10%',
+                [25] = 'Cattle herding +15%',
+                [50] = 'Horse bond slot +1',
+                [75] = 'Taming wild horse +25%',
+                [100] = 'Legendary mount access'
+            }
+        },
+        Butcher = {
+            label = 'Butcher',
+            description = 'Slaughter yield and meat quality',
+            bonuses = {
+                [10] = 'Meat yield +10%',
+                [25] = 'Quality grade +1',
+                [50] = 'Sell price +10%',
+                [75] = 'Bulk processing unlocked',
+                [100] = 'Meat yield +30%'
+            }
+        },
+        Teamster = {
+            label = 'Teamster',
+            description = 'Wagon control, delivery speed',
+            bonuses = {
+                [10] = 'Contract time +10%',
+                [25] = 'Wagon capacity +20%',
+                [50] = 'Delivery pay +15%',
+                [75] = 'Unlock heavy wagons',
+                [100] = 'Rapid delivery — pay +30%'
+            }
+        }
+    },
+
+    xpGains = {
+        feedAnimal      = 2,
+        waterAnimal     = 2,
+        groomAnimal     = 4,
+        milkCow         = 6,
+        shearSheep      = 5,
+        slaughter       = 10,
+        breed           = 25,
+        healAnimal      = 8,
+        deliverContract = 15,
+        winAuction      = 20,
+        hireWorker      = 5
+    },
+
+    achievements = {
+        first_herd        = { label = 'First Herd',        requirement = { animals = 10 },  reward = 200 },
+        hundred_animals   = { label = 'Empire Herd',       requirement = { animals = 100 }, reward = 2500 },
+        master_breeder    = { label = 'Master Breeder',    requirement = { births = 50 },   reward = 1500 },
+        contract_champ    = { label = 'Contract Champion', requirement = { contracts = 25 }, reward = 1000 },
+        auction_king      = { label = 'Auction King',      requirement = { auctionsWon = 10 }, reward = 800 },
+        season_survivor   = { label = 'Four Seasons',      requirement = { seasonsSurvived = 4 }, reward = 500 }
+    },
+
+    legacySystem = {
+        enabled         = true,
+        heirsPerOwner   = 2,
+        inheritXpPct    = 0.25,      -- New character inherits 25% XP from legacy
+        inheritItemsPct = 0.10
+    }
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ RANCHES & SPAWN POINTS ████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+Config.Ranches = {
+    defaultPurchasePrice = 25000,
+    maxRanchesPerPlayer  = 1,
+    allowBanking         = true,     -- Ranch has its own cash ledger
+    defaultBoundaryRadius = 120.0,
+
+    -- Seed ranches created on first boot (can be removed/edited via admin commands).
+    -- Identifier slot '' means unowned/buyable.
+    seeds = {
+        ['emerald_ranch'] = {
+            label   = 'Emerald Ranch',
+            owner   = '',
+            center  = vector3(1357.47, 344.02, 93.71),
+            heading = 180.0,
+            radius  = 150.0,
+            tier    = 1
+        },
+        ['pronghorn_ranch'] = {
+            label   = 'Pronghorn Ranch',
+            owner   = '',
+            center  = vector3(-810.9, 784.21, 131.45),
+            heading = 90.0,
+            radius  = 200.0,
+            tier    = 2
+        },
+        ['downes_ranch'] = {
+            label   = 'Downes Ranch',
+            owner   = '',
+            center  = vector3(-925.3, -275.4, 74.4),
+            heading = 0.0,
+            radius  = 100.0,
+            tier    = 1
+        },
+        ['hanging_dog_ranch'] = {
+            label   = 'Hanging Dog Ranch',
+            owner   = '',
+            center  = vector3(-3594.4, -1051.3, 13.7),
+            heading = 90.0,
+            radius  = 180.0,
+            tier    = 2
+        },
+        ['painted_sky_ranch'] = {
+            label   = 'Painted Sky Ranch',
+            owner   = '',
+            center  = vector3(-2220.4, -2428.7, 67.5),
+            heading = 270.0,
+            radius  = 220.0,
+            tier    = 3
+        }
+    },
+
+    tiers = {
+        [1] = { label = 'Homestead',  maxAnimals = 40,  maxWorkers = 5,  maxProps = 30,  upgradeCost = 10000 },
+        [2] = { label = 'Ranch',      maxAnimals = 120, maxWorkers = 12, maxProps = 80,  upgradeCost = 25000 },
+        [3] = { label = 'Estate',     maxAnimals = 300, maxWorkers = 20, maxProps = 200, upgradeCost = 60000 },
+        [4] = { label = 'Empire',     maxAnimals = 800, maxWorkers = 40, maxProps = 500, upgradeCost = nil }
+    }
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ ZONING (POLYGON ZONES) ████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+Config.Zoning = {
+    enabled              = true,
+    maxVerticesPerZone   = 32,
+    minVerticesPerZone   = 3,
+    editorHeightStep     = 0.5,      -- Z-step when extruding zones
+    showAllZonesToAdmins = true,
+    zoneTypes = {
+        'pasture', 'barn', 'paddock', 'gate', 'trough', 'slaughter', 'market', 'restricted'
+    }
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ PROPS / MAPPER ████████████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+Config.Props = {
+    enabled        = true,
+    maxPerRanch    = 200,
+    snapToGround   = true,
+    collisionCheck = true,
+    whitelistedModels = {
+        'p_haybale01x', 'p_haybale02x', 'p_haybale03x',
+        'p_barrel01x', 'p_crate01x', 'p_crate02x',
+        'p_fencepost01x', 'p_fenceruralv_01a', 'p_fenceruralv_02a',
+        'p_woodpile01x', 'p_woodpile02x',
+        'p_bucket03x', 'p_pitchfork01x', 'p_shovel01x',
+        'p_chickencoop01x', 'p_troughmetal01x', 'p_troughwood01x',
+        'p_crate07x', 'p_kegbarrel01x'
+    }
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ UI CONFIGURATION ██████████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+Config.UI = {
+    enableLedgerApp     = true,
+    mapOverlay          = true,
+    statusIcons         = true,
+    photoCatalog        = true,
+    auctionUI           = true,
+    discordWebhooks     = true,
+    voiceCommands = {
+        enable          = false,  -- Experimental — leave off unless tested
+        whistleDog      = true,
+        callCattle      = true
+    },
+    theme = {
+        primaryAccent   = '#c9a84c',  -- Gold
+        secondaryAccent = '#8a6f2e',
+        backgroundTone  = 'dark_parchment'
+    },
+    defaultTab          = 'dashboard', -- 'dashboard', 'livestock', 'workforce', 'economy', 'environment', 'progression', 'auction'
+    showActivityFeed    = true,
+    feedMaxEntries      = 25
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ ADMIN CONFIGURATION ███████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+Config.Admin = {
+    acePermission   = 'ranch.admin',
+    useAce          = true,
+    useIdentifiers  = true,
+    identifiers = {
+        -- ['license:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'] = true,
+        -- ['discord:123456789012345678'] = true,
+    },
+    commandPrefix = 'ranch',       -- All admin commands begin with /ranch<verb>
+    logToConsole  = true,
+    logToWebhook  = true
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ DATABASE / PERSISTENCE ████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+Config.Database = {
+    mode             = 'mysql',       -- 'mysql' | 'json'
+    prefix           = 'lxr_ranch_',  -- Table prefix
+    autoMigrate      = true,           -- Auto-create tables on first boot
+    jsonFallbackPath = 'data/',        -- Used only when mode = 'json'
+    saveBatchSize    = 50,
+    connectTimeout   = 5000
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ SECURITY & ANTI-ABUSE █████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+Config.Security = {
+    enabled                = true,
+    resourceNameGuard      = 'lxr-advancedranch',   -- Must match resource folder exactly
+    kickOnNameMismatch     = true,
+    maxDistance            = 10.0,
+    maxActionsPerMinute    = 60,
+    requireLineOfSight     = false,
+    validateTargetExists   = true,
+    validateRanchMembership = true,
+    logSuspiciousActivity  = true,
+    kickOnExploit          = false,
+    banOnExploit           = false,
+    nuiDataRateLimit       = 12,    -- Max NUI pulls per minute per player
+    commandCooldownMs      = 1500
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ PERFORMANCE OPTIMIZATION ██████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+Config.Performance = {
+    cacheEnabled              = true,
+    cacheTtlSeconds           = 30,
+    clientUpdateInterval      = 1500,    -- ms between client tick handlers
+    livestockTickInterval     = 60000,   -- Server tick for needs decay (1 min)
+    environmentTickInterval   = 30000,   -- Weather/vegetation tick (30s)
+    economyTickInterval       = 60000,   -- Price refresh (1 min)
+    nuiStreamInterval         = 5000,    -- NUI data stream to open clients
+    maxNearbyEntities         = 100,
+    cleanupInterval           = 300000,  -- Stale ephemeral data cleanup (5 min)
+    useDirtyFlagSaves         = true,    -- Only save changed records
+    batchedWrites             = true
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ DEBUG SETTINGS ████████████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+Config.Debug = false    -- Master debug switch; enables verbose prints and diag tools
+
+Config.DebugChannels = {
+    framework   = true,
+    database    = true,
+    livestock   = false,
+    workforce   = false,
+    economy     = false,
+    environment = false,
+    progression = false,
+    admin       = true,
+    nui         = false,
+    security    = true
+}
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ END OF CONFIGURATION ██████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+CreateThread(function()
+    Wait(1000)
+    if IsDuplicityVersion() then
+        local livestockCount = 0
+        for _ in pairs(Config.Livestock) do livestockCount = livestockCount + 1 end
+
+        local roleCount = 0
+        for _ in pairs(Config.Workforce.roles) do roleCount = roleCount + 1 end
+
+        local ranchCount = 0
+        for _ in pairs(Config.Ranches.seeds) do ranchCount = ranchCount + 1 end
+
+        local townCount = 0
+        for _ in pairs(Config.Economy.townBoards) do townCount = townCount + 1 end
+
+        local skillCount = 0
+        for _ in pairs(Config.Progression.skills) do skillCount = skillCount + 1 end
+
+        print([[
+
+        ═══════════════════════════════════════════════════════════════════════════════
+
+            ██╗     ██╗  ██╗██████╗        ██████╗  █████╗ ███╗   ██╗ ██████╗██╗  ██╗
+            ██║     ╚██╗██╔╝██╔══██╗      ██╔══██╗██╔══██╗████╗  ██║██╔════╝██║  ██║
+            ██║      ╚███╔╝ ██████╔╝█████╗██████╔╝███████║██╔██╗ ██║██║     ███████║
+            ██║      ██╔██╗ ██╔══██╗╚════╝██╔══██╗██╔══██║██║╚██╗██║██║     ██╔══██║
+            ███████╗██╔╝ ██╗██║  ██║      ██║  ██║██║  ██║██║ ╚████║╚██████╗██║  ██║
+            ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝      ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝
+
+        ═══════════════════════════════════════════════════════════════════════════════
+        🐺 LXR ADVANCED RANCH SYSTEM - SUCCESSFULLY LOADED
+        ═══════════════════════════════════════════════════════════════════════════════
+
+        Version:        1.0.0
+        Server:         ]] .. Config.ServerInfo.name .. [[
+
+        Framework:      ]] .. tostring(Config.Framework) .. [[ (auto-detect enabled)
+        Persistence:    ]] .. string.upper(Config.Database.mode) .. [[
+
+        Livestock:      ]] .. livestockCount .. [[ species configured
+        Workforce:      ]] .. roleCount .. [[ roles configured
+        Ranches:        ]] .. ranchCount .. [[ seed ranches
+        Town Boards:    ]] .. townCount .. [[ contract boards
+        Skills:         ]] .. skillCount .. [[ skill trees
+        Language:       ]] .. Config.Lang .. [[
+
+        Security:       ]] .. (Config.Security.enabled and 'ENABLED ✓' or 'DISABLED ✗') .. [[
+        Environment:    ]] .. (Config.Environment.enabled and 'ENABLED ✓' or 'DISABLED ✗') .. [[
+        Economy:        ]] .. (Config.Economy.enabled and 'ENABLED ✓' or 'DISABLED ✗') .. [[
+        Auctions:       ]] .. (Config.Economy.auctions.enabled and 'ENABLED ✓' or 'DISABLED ✗') .. [[
+        Discord Sync:   ]] .. (Config.Discord.enabled and 'ENABLED ✓' or 'DISABLED ✗') .. [[
+        Debug:          ]] .. (Config.Debug and 'ENABLED' or 'DISABLED') .. [[
+
+        ═══════════════════════════════════════════════════════════════════════════════
+
+        Developer:   iBoss21 / The Lux Empire
+        Website:     https://www.wolves.land
+        Discord:     https://discord.gg/CrKcWdfd3A
+        Store:       https://theluxempire.tebex.io
+
+        ═══════════════════════════════════════════════════════════════════════════════
+
+    ]])
+    end
+end)

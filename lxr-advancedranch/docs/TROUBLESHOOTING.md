@@ -1,101 +1,146 @@
-# 🐺 LXR Ranch System — Troubleshooting
-
-> **wolves.land — The Land of Wolves**  
-> © 2026 iBoss21 / The Lux Empire | All Rights Reserved
+# 🐺 Troubleshooting — lxr-advancedranch
 
 ---
 
-## ❌ CRITICAL: RESOURCE NAME MISMATCH
+## The resource refuses to start
 
-**Error:**
-```
-❌  CRITICAL: RESOURCE NAME MISMATCH  ❌
-Expected resource name : lxr-advancedranch
-Current resource name  : <your-folder-name>
-```
+**Symptom.** Console prints `[lxr-advancedranch] FATAL: resource renamed from 'lxr-advancedranch' — halting.` and the resource stops.
 
-**Fix:** Rename the resource folder to exactly `lxr-advancedranch`.
+**Cause.** The folder is not named exactly `lxr-advancedranch`. This guard blocks redistribution and also trips on accidental renames.
+
+**Fix.** Rename the folder back to `lxr-advancedranch`. If you need a legitimate rename for a fork, update `Config.Security.resourceNameGuard` and the `EXPECTED_NAME` constant at the top of `server/sv_main.lua`.
 
 ---
 
-## ❌ Framework Bridge Failure
+## Framework not detected
 
-**Error:**
-```
-LXR Ranch System — Framework Bridge Failure
-No valid framework adapter found for: "..."
-```
+**Symptom.** Console prints `framework detected: standalone` on a server that clearly runs RSG (or similar).
 
-**Fix:**
-1. Make sure your framework resource is started **before** `lxr-advancedranch`.
-2. Set `Config.Framework = 'standalone'` if you want to run without a framework.
-3. Check `Config.FrameworkSettings` for the correct resource name.
+**Cause.** `lxr-advancedranch` started before your framework's resource reached state `started`. Detection is a one-shot probe on boot.
+
+**Fix.** In `server.cfg`, ensure the framework `ensure` line comes before `ensure lxr-advancedranch`. If the framework is lazy-loaded, set `Config.Framework = 'rsg-core'` (or whatever key) to skip detection.
 
 ---
 
-## ❌ Data files not loading
+## `oxmysql was unable to establish a connection`
 
-**Symptom:** Ranch data is empty or resets on restart.
+**Symptom.** Ranch tables never create; `DB.Ready` stays false; NUI shows empty data.
 
-**Fix:**
-- Check that the `data/` folder exists and contains the JSON files.
-- Verify file permissions allow the server to read/write in the resource directory.
-- Check `Config.Storage.Files` paths match actual file locations.
+**Cause.** `oxmysql` can't reach your DB. Not an `lxr-advancedranch` bug.
 
----
+**Fix.** Check `set mysql_connection_string "..."` in `server.cfg`. For MariaDB on Debian 12 (wolves.land stack), confirm the `mariadb` service is running and listening on the configured port:
 
-## ❌ No permission / Admin commands not working
-
-**Fix:**
-1. Add your ace permission: `add_ace identifier.license:XXXX ranch.admin allow`
-2. Or add your identifier to `Config.Admin.Identifiers` in `config.lua`.
-3. Ensure `Config.Admin.AcePermission` is set correctly.
-
----
-
-## ❌ UI not opening
-
-**Fix:**
-- Check that `html/index.html` exists in the resource.
-- Verify `ui_page 'html/index.html'` is in `fxmanifest.lua`.
-- Check browser console (F8 in RedM) for JavaScript errors.
-
----
-
-## ❌ Framework events not firing
-
-**Fix:**
-- Enable verbose logging: `Config.Dev.VerboseEvents = true`
-- Check the server console for framework detection messages.
-- Verify the framework resource is actually running (`started` state).
-
----
-
-## ℹ️ Enable Debug Mode
-
-```lua
-Config.Debug = true
-Config.Dev.LogFrameworkInit = true
-Config.Dev.VerboseEvents    = true
+```bash
+systemctl status mariadb
+ss -tlnp | grep 3306
 ```
 
-Restart the resource after changing debug settings.
+Temporary workaround: set `Config.Database.mode = 'json'` to run against the file fallback. Not suitable for production.
 
 ---
 
-## Support
+## NUI opens but all tabs show empty data
 
-If the issue persists:
+**Symptom.** F5 opens the journal, tabs switch, but lists and cards are blank.
 
-- Discord: https://discord.gg/CrKcWdfd3A  
-- Website: https://www.wolves.land  
-- Store: https://theluxempire.tebex.io  
+**Cause.** Either:
+- The player isn't associated with any ranch and `Config.General.ownerOnlyUI = true`.
+- NUI rate limiter is throttling `requestUIData`.
+- Framework bridge returned `nil` for the player — inventory and money calls fail.
 
-Please include:
-1. Server console error output
-2. Your framework name and version
-3. Your `Config.Framework` setting
+**Fix.** Run `/ranchdump` in rcon to confirm ranches exist. Check console for `[lxr-advancedranch] NUI throttled for src=N` — raise `Config.Security.nuiDataRateLimit` if you see it frequently. Confirm the framework matches your server.
 
 ---
 
-*🐺 wolves.land — The Land of Wolves*
+## Resource refuses escrow upload / Tebex rejects
+
+**Symptom.** Tebex escrow CLI rejects the upload.
+
+**Cause.** Almost always: you edited a protected file. The following paths are `escrow_ignore` in `fxmanifest.lua` and remain editable:
+
+```
+config.lua
+locales/*
+sql/*
+docs/*
+html/*
+```
+
+**Fix.** Revert any edits to `server/`, `client/`, or `shared/database.lua`, `shared/framework.lua`, `shared/utils.lua`. If you genuinely need a code-level change, open a support ticket — custom forks are not permitted under the standard license.
+
+---
+
+## Workers aren't being paid
+
+**Symptom.** Payday webhook never fires; worker `last_paid` stays at 0.
+
+**Cause.** Either ranch balance is empty (payday fails silently and drops morale instead), or the payday interval hasn't elapsed yet.
+
+**Fix.** Payday only fires when `now - last_paid >= Config.Workforce.paydayIntervalHours * 3600`. For testing, set `paydayIntervalHours = 0.05` (3 min) and watch the ticker. Confirm `ranch.balance > 0` via `/ranchdump`.
+
+---
+
+## Discord webhook not firing
+
+**Symptom.** Ownership transfers, auctions, etc., don't appear in Discord.
+
+**Cause.** Usually:
+- `Config.Discord.enabled = false`.
+- Webhook URL is wrong or the Discord channel was deleted.
+- The server can't reach `discord.com` — firewall or egress restriction.
+
+**Fix.** Verify with:
+
+```bash
+curl -X POST -H "Content-Type: application/json" \
+     -d '{"content":"test"}' \
+     https://discord.com/api/webhooks/.../...
+```
+
+If `200` returns and you see the test message, the config or URL is wrong. If you get a connection error, your host is blocking outbound HTTPS.
+
+---
+
+## MariaDB vs MySQL ENUM edge cases
+
+**Symptom.** On MySQL 8+ only: `CREATE TABLE ... ENUM(...) DEFAULT 'xxx'` fails if `xxx` isn't one of the listed values.
+
+**Cause.** MySQL 8's stricter `sql_mode` (`STRICT_TRANS_TABLES`). MariaDB is more permissive.
+
+**Fix.** Every ENUM in `sql/schema.sql` has a valid default. If you're hitting this, your DB has diverged from the shipped schema. Drop the `lxr_ranch_*` tables and let auto-migrate rebuild, or rerun `sql/schema.sql` cleanly.
+
+---
+
+## Prop placement fails silently
+
+**Symptom.** `/ranchprop prop_barrel_01a` starts the editor, you press ENTER, nothing happens.
+
+**Cause.** Model isn't in `Config.Props.whitelistedModels`. The server rejects the placement request without a toast (the NUI isn't in scope during placement).
+
+**Fix.** Add the model to the whitelist, restart the resource. Whitelist is deliberately strict to prevent trolls from placing `prop_giant_cactus_01` on main roads.
+
+---
+
+## Georgian characters render as boxes
+
+**Symptom.** Activity feed or locale strings show `□□□` instead of Georgian text.
+
+**Cause.** Browser or Chromium Embedded Framework is missing the font. Google Fonts `Playfair Display` / `Crimson Text` have Georgian glyph coverage; loading should be automatic.
+
+**Fix.** Confirm outbound HTTPS to `fonts.googleapis.com` and `fonts.gstatic.com` from the client. If your players' clients are behind a restrictive firewall, self-host the fonts under `html/fonts/` and rewrite the `<link>` in `html/index.html`.
+
+---
+
+## Other issues
+
+Open a ticket in [Discord](https://discord.gg/CrKcWdfd3A). Include:
+
+- FXServer artifact version (`version` in console).
+- Framework and version.
+- Full console output from `ensure lxr-advancedranch` to first error.
+- Your `config.lua` (redact webhook URL and tokens).
+- Steps to reproduce.
+
+---
+
+© 2026 iBoss21 / The Lux Empire · **wolves.land** · All Rights Reserved

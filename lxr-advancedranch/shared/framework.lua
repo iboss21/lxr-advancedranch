@@ -1,399 +1,464 @@
 --[[
-    ═══════════════════════════════════════════════════════════════════════════════
-    🐺 LXR Ranch System — Framework Bridge
-    ═══════════════════════════════════════════════════════════════════════════════
-    This file is ESCROW PROTECTED. Buyers cannot view or edit its contents.
+    ██╗     ██╗  ██╗██████╗        ██████╗  █████╗ ███╗   ██╗ ██████╗██╗  ██╗
+    ██║     ╚██╗██╔╝██╔══██╗      ██╔══██╗██╔══██╗████╗  ██║██╔════╝██║  ██║
+    ██║      ╚███╔╝ ██████╔╝█████╗██████╔╝███████║██╔██╗ ██║██║     ███████║
+    ██║      ██╔██╗ ██╔══██╗╚════╝██╔══██╗██╔══██║██║╚██╗██║██║     ██╔══██║
+    ███████╗██╔╝ ██╗██║  ██║      ██║  ██║██║  ██║██║ ╚████║╚██████╗██║  ██║
+    ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝      ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝╚═╝  ╚═╝
 
-    Implements the Adapter/Bridge pattern for multi-framework compatibility.
-    Detection priority: LXR-Core → RSG-Core → VORP-Core → optional → standalone
+    🐺 Advanced Ranch System - Framework Adapter Layer
 
-    Exposed interface:
-        Framework.Notify(source, message, type)
-        Framework.GetPlayer(source)
-        Framework.GetIdentifier(source)
-        Framework.GetJob(source)
-        Framework.AddItem(source, item, count)
-        Framework.RemoveItem(source, item, count)
-        Framework.HasItem(source, item, count)
-        Framework.GetMoney(source)
-        Framework.AddMoney(source, amount)
-        Framework.RemoveMoney(source, amount)
+    Unified interface for interacting with every supported framework (LXR, RSG,
+    VORP, RedEM:RP, QBR, QR, standalone). Auto-detects the active framework at
+    startup and dispatches every call through the correct adapter. Loaded as a
+    shared_script; each function checks its environment (server vs client) at
+    call time.
 
-    wolves.land — The Land of Wolves
-    © 2026 iBoss21 / The Lux Empire | All Rights Reserved
     ═══════════════════════════════════════════════════════════════════════════════
+    SERVER INFORMATION
+    ═══════════════════════════════════════════════════════════════════════════════
+
+    Developer:   iBoss21 / The Lux Empire
+    Website:     https://www.wolves.land
+    Discord:     https://discord.gg/CrKcWdfd3A
+    GitHub:      https://github.com/iBoss21
+    Store:       https://theluxempire.tebex.io
+
+    ═══════════════════════════════════════════════════════════════════════════════
+
+    Version: 1.0.0
+
+    Framework Support:
+    - LXR Core (Primary)        - Fully supported
+    - RSG Core (Primary)        - Fully supported
+    - VORP Core (Supported)     - Compatible
+    - RedEM:RP (Optional)       - Compatible if detected
+    - QBR Core (Optional)       - Compatible if detected
+    - QR Core (Optional)        - Compatible if detected
+    - Standalone (Fallback)     - Basic functionality only
+
+    ═══════════════════════════════════════════════════════════════════════════════
+
+    © 2026 iBoss21 / The Lux Empire | wolves.land | All Rights Reserved
 ]]
 
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ ENVIRONMENT DETECTION █████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+local IS_SERVER = IsDuplicityVersion()
+local IS_CLIENT = not IS_SERVER
+local resourceName = GetCurrentResourceName()
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ FRAMEWORK STATE ███████████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
 Framework = {}
-local _detected = nil
+Framework.Type   = nil
+Framework.Object = nil
+Framework.Ready  = false
 
 -- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ DETECTION ████████████████████████████████████████████
+-- ████████████████████████ FRAMEWORK DETECTION ███████████████████████████████████
 -- ████████████████████████████████████████████████████████████████████████████████
 
-local function detectFramework()
+local function debugLog(msg)
+    if Config and Config.Debug and Config.DebugChannels and Config.DebugChannels.framework then
+        print('^3[' .. resourceName .. '] [framework]^7 ' .. tostring(msg))
+    end
+end
+
+local function DetectFramework()
     if Config.Framework ~= 'auto' then
-        return Config.Framework
+        Framework.Type = Config.Framework
+        debugLog('Framework manually set to: ' .. Framework.Type)
+        return Framework.Type
     end
 
-    -- Detection order: LXR → RSG → VORP → RedEM → QBR → QR → standalone
-    local checks = {
-        { name = 'lxr-core',        resource = 'lxr-core'        },
-        { name = 'rsg-core',        resource = 'rsg-core'        },
-        { name = 'vorp_core',       resource = 'vorp_core'       },
-        { name = 'redem_roleplay',  resource = 'redem_roleplay'  },
-        { name = 'qbr-core',        resource = 'qbr-core'        },
-        { name = 'qr-core',         resource = 'qr-core'         },
+    local detectionOrder = {
+        'lxr-core',
+        'rsg-core',
+        'vorp_core',
+        'redem_roleplay',
+        'qbr-core',
+        'qr-core'
     }
 
-    for _, check in ipairs(checks) do
-        if GetResourceState(check.resource) == 'started' then
-            if Config.Dev and Config.Dev.LogFrameworkInit then
-                print(('[LXR Ranch] Framework detected: %s'):format(check.name))
-            end
-            return check.name
+    for _, fw in ipairs(detectionOrder) do
+        local state = GetResourceState(fw)
+        if state == 'started' or state == 'starting' then
+            Framework.Type = fw
+            debugLog('Auto-detected framework: ' .. fw)
+            return fw
         end
     end
 
+    Framework.Type = 'standalone'
+    debugLog('No framework detected — running in standalone mode')
     return 'standalone'
 end
 
+local function InitializeFramework()
+    local fwType = DetectFramework()
+
+    if fwType == 'lxr-core' then
+        Framework.Object = exports['lxr-core']:GetCoreObject()
+    elseif fwType == 'rsg-core' then
+        Framework.Object = exports['rsg-core']:GetCoreObject()
+    elseif fwType == 'vorp_core' then
+        if IS_SERVER then
+            Framework.Object = exports.vorp_core:GetCore()
+        end
+    elseif fwType == 'redem_roleplay' then
+        Framework.Object = exports['redem_roleplay']:GetCoreObject()
+    elseif fwType == 'qbr-core' then
+        Framework.Object = exports['qbr-core']:GetCoreObject()
+    elseif fwType == 'qr-core' then
+        Framework.Object = exports['qr-core']:GetCoreObject()
+    else
+        Framework.Object = nil
+    end
+
+    Framework.Ready = true
+    debugLog((IS_SERVER and '[SERVER] ' or '[CLIENT] ') .. 'Framework initialized: ' .. tostring(fwType))
+end
+
+CreateThread(function()
+    Wait(200)
+    InitializeFramework()
+end)
+
 -- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ ADAPTERS ██████████████████████████████████████████████
+-- ████████████████████████ LOCALE HELPER █████████████████████████████████████████
 -- ████████████████████████████████████████████████████████████████████████████████
 
-local adapters = {}
+function Framework.L(key, ...)
+    local lang = Config.Lang or 'en'
+    local t = Config.Locale and Config.Locale[lang] or {}
+    local str = t[key] or (Config.Locale and Config.Locale.en and Config.Locale.en[key]) or key
+    if select('#', ...) > 0 then
+        return string.format(str, ...)
+    end
+    return str
+end
 
--- ─── LXR Core ────────────────────────────────────────────────────────────────
-adapters['lxr-core'] = {
-    GetPlayer = function(source)
-        local Core = exports['lxr-core']:GetCoreObject()
-        return Core.Functions.GetPlayer(source)
-    end,
-    GetIdentifier = function(source)
-        local Core = exports['lxr-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
-        return player and player.PlayerData and player.PlayerData.citizenid or nil
-    end,
-    GetJob = function(source)
-        local Core = exports['lxr-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
-        return player and player.PlayerData and player.PlayerData.job and player.PlayerData.job.name or nil
-    end,
-    AddItem = function(source, item, count)
-        local Core = exports['lxr-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
-        if player then player.Functions.AddItem(item, count) end
-    end,
-    RemoveItem = function(source, item, count)
-        local Core = exports['lxr-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
-        if player then player.Functions.RemoveItem(item, count) end
-    end,
-    HasItem = function(source, item, count)
-        local Core = exports['lxr-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ NOTIFY (DUAL ENVIRONMENT) ████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+--[[
+    CLIENT: Framework.Notify(message, type, duration)
+    SERVER: Framework.Notify(source, message, type, duration)
+]]
+
+function Framework.Notify(a, b, c, d)
+    if IS_CLIENT then
+        local message  = a
+        local nType    = b or 'info'
+        local duration = c or 3000
+
+        if Framework.Type == 'lxr-core' or Framework.Type == 'rsg-core'
+        or Framework.Type == 'qbr-core' or Framework.Type == 'qr-core' then
+            if GetResourceState('ox_lib') == 'started' then
+                exports.ox_lib:notify({ type = nType, description = message, duration = duration })
+            else
+                TriggerEvent('ox_lib:notify', { type = nType, description = message, duration = duration })
+            end
+        elseif Framework.Type == 'vorp_core' then
+            TriggerEvent('vorp:TipBottom', message, duration)
+        elseif Framework.Type == 'redem_roleplay' then
+            TriggerEvent('redem_roleplay:Notify', nType, message, duration)
+        else
+            print('^3[' .. resourceName .. '] [Notify]^7 ' .. tostring(message))
+        end
+    else
+        local source   = a
+        local message  = b
+        local nType    = c or 'info'
+        local duration = d or 3000
+
+        if not source or type(source) ~= 'number' then return end
+
+        if Framework.Type == 'lxr-core' or Framework.Type == 'rsg-core'
+        or Framework.Type == 'qbr-core' or Framework.Type == 'qr-core' then
+            TriggerClientEvent('ox_lib:notify', source, {
+                type = nType, description = message, duration = duration
+            })
+        elseif Framework.Type == 'vorp_core' then
+            TriggerClientEvent('vorp:TipBottom', source, message, duration)
+        elseif Framework.Type == 'redem_roleplay' then
+            TriggerClientEvent('redem_roleplay:Notify', source, nType, message, duration)
+        else
+            TriggerClientEvent('chat:addMessage', source, { args = { '[Ranch]', message } })
+        end
+    end
+end
+
+-- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ SERVER-ONLY ADAPTER ██████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+if IS_SERVER then
+
+    function Framework.GetPlayer(source)
+        if not source or source == 0 then return nil end
+
+        if Framework.Type == 'lxr-core' or Framework.Type == 'rsg-core'
+        or Framework.Type == 'qbr-core' or Framework.Type == 'qr-core' then
+            if Framework.Object and Framework.Object.Functions then
+                return Framework.Object.Functions.GetPlayer(source)
+            end
+        elseif Framework.Type == 'vorp_core' then
+            if Framework.Object and Framework.Object.getUser then
+                return Framework.Object.getUser(source)
+            end
+        elseif Framework.Type == 'redem_roleplay' then
+            if Framework.Object and Framework.Object.GetPlayer then
+                return Framework.Object.GetPlayer(source)
+            end
+        end
+
+        return {
+            source     = source,
+            identifier = GetPlayerIdentifier(source, 0) or 'unknown',
+            PlayerData = {
+                source     = source,
+                citizenid  = GetPlayerIdentifier(source, 0) or 'unknown',
+                identifier = GetPlayerIdentifier(source, 0) or 'unknown'
+            }
+        }
+    end
+
+    function Framework.GetIdentifier(source)
+        if not source or source == 0 then return 'console' end
+
+        if Framework.Type == 'lxr-core' or Framework.Type == 'rsg-core'
+        or Framework.Type == 'qbr-core' or Framework.Type == 'qr-core' then
+            local player = Framework.GetPlayer(source)
+            if player and player.PlayerData then
+                return player.PlayerData.citizenid or player.PlayerData.identifier
+            end
+        elseif Framework.Type == 'vorp_core' then
+            local user = Framework.GetPlayer(source)
+            if user then
+                local char = user.getUsedCharacter
+                if char then
+                    return char.identifier or char.charIdentifier or GetPlayerIdentifier(source, 0)
+                end
+            end
+        end
+
+        return GetPlayerIdentifier(source, 0) or ('source:' .. tostring(source))
+    end
+
+    function Framework.GetName(source)
+        local player = Framework.GetPlayer(source)
+        if not player then return GetPlayerName(source) or 'Unknown' end
+
+        if player.PlayerData and player.PlayerData.charinfo then
+            local ci = player.PlayerData.charinfo
+            return (ci.firstname or '') .. ' ' .. (ci.lastname or '')
+        end
+        if player.getUsedCharacter then
+            local c = player.getUsedCharacter
+            return (c.firstname or '') .. ' ' .. (c.lastname or '')
+        end
+        return GetPlayerName(source) or 'Unknown'
+    end
+
+    function Framework.HasItem(source, item, count)
+        count = count or 1
+        local player = Framework.GetPlayer(source)
         if not player then return false end
-        local inv = player.Functions.GetItemByName(item)
-        return inv and inv.amount >= (count or 1)
-    end,
-    GetMoney = function(source)
-        local Core = exports['lxr-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
-        return player and player.Functions.GetMoney('cash') or 0
-    end,
-    AddMoney = function(source, amount)
-        local Core = exports['lxr-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
-        if player then player.Functions.AddMoney('cash', amount) end
-    end,
-    RemoveMoney = function(source, amount)
-        local Core = exports['lxr-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
-        if player then player.Functions.RemoveMoney('cash', amount) end
-    end,
-    Notify = function(source, message, ntype)
-        TriggerClientEvent('ox_lib:notify', source, { title = 'Ranch', description = message, type = ntype or 'inform' })
-    end
-}
 
--- ─── RSG Core ────────────────────────────────────────────────────────────────
-adapters['rsg-core'] = {
-    GetPlayer = function(source)
-        local Core = exports['rsg-core']:GetCoreObject()
-        return Core.Functions.GetPlayer(source)
-    end,
-    GetIdentifier = function(source)
-        local Core = exports['rsg-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
-        return player and player.PlayerData and player.PlayerData.citizenid or nil
-    end,
-    GetJob = function(source)
-        local Core = exports['rsg-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
-        return player and player.PlayerData and player.PlayerData.job and player.PlayerData.job.name or nil
-    end,
-    AddItem = function(source, item, count)
-        local Core = exports['rsg-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
-        if player then player.Functions.AddItem(item, count) end
-    end,
-    RemoveItem = function(source, item, count)
-        local Core = exports['rsg-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
-        if player then player.Functions.RemoveItem(item, count) end
-    end,
-    HasItem = function(source, item, count)
-        local Core = exports['rsg-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
+        if Framework.Type == 'lxr-core' or Framework.Type == 'rsg-core'
+        or Framework.Type == 'qbr-core' or Framework.Type == 'qr-core' then
+            if player.Functions and player.Functions.GetItemByName then
+                local data = player.Functions.GetItemByName(item)
+                return data and data.amount and data.amount >= count
+            end
+        elseif Framework.Type == 'vorp_core' then
+            local amt = exports.vorp_inventory:getItemCount(source, nil, item)
+            return amt and amt >= count
+        elseif Framework.Type == 'redem_roleplay' then
+            if player.getItem then
+                local i = player.getItem(item)
+                return i and i.amount and i.amount >= count
+            end
+        end
+        return false
+    end
+
+    function Framework.AddItem(source, item, count, meta)
+        count = count or 1
+        local player = Framework.GetPlayer(source)
         if not player then return false end
-        local inv = player.Functions.GetItemByName(item)
-        return inv and inv.amount >= (count or 1)
-    end,
-    GetMoney = function(source)
-        local Core = exports['rsg-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
-        return player and player.Functions.GetMoney('cash') or 0
-    end,
-    AddMoney = function(source, amount)
-        local Core = exports['rsg-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
-        if player then player.Functions.AddMoney('cash', amount) end
-    end,
-    RemoveMoney = function(source, amount)
-        local Core = exports['rsg-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
-        if player then player.Functions.RemoveMoney('cash', amount) end
-    end,
-    Notify = function(source, message, ntype)
-        TriggerClientEvent('ox_lib:notify', source, { title = 'Ranch', description = message, type = ntype or 'inform' })
-    end
-}
 
--- ─── VORP Core ───────────────────────────────────────────────────────────────
-adapters['vorp_core'] = {
-    GetPlayer = function(source)
-        return exports['vorp_core']:getUser(source)
-    end,
-    GetIdentifier = function(source)
-        local user = exports['vorp_core']:getUser(source)
-        return user and tostring(user.getIdentifier()) or nil
-    end,
-    GetJob = function(source)
-        local user = exports['vorp_core']:getUser(source)
-        return user and tostring(user.getJob()) or nil
-    end,
-    AddItem = function(source, item, count)
-        exports['vorp_inventory']:addItem(source, item, count)
-    end,
-    RemoveItem = function(source, item, count)
-        exports['vorp_inventory']:subItem(source, item, count)
-    end,
-    HasItem = function(source, item, count)
-        local inv = exports['vorp_inventory']:getUserItem(source, item)
-        return inv and inv.count >= (count or 1)
-    end,
-    GetMoney = function(source)
-        local user = exports['vorp_core']:getUser(source)
-        return user and user.getMoney() or 0
-    end,
-    AddMoney = function(source, amount)
-        local user = exports['vorp_core']:getUser(source)
-        if user then user.addCurrency(0, amount) end
-    end,
-    RemoveMoney = function(source, amount)
-        local user = exports['vorp_core']:getUser(source)
-        if user then user.removeCurrency(0, amount) end
-    end,
-    Notify = function(source, message, ntype)
-        TriggerClientEvent('vorp:TipRight', source, message, 4000)
-    end
-}
-
--- ─── RedEM:RP ─────────────────────────────────────────────────────────────────
-adapters['redem_roleplay'] = {
-    GetPlayer = function(source)
-        return exports['redem_roleplay']:getUser(source)
-    end,
-    GetIdentifier = function(source)
-        local user = exports['redem_roleplay']:getUser(source)
-        return user and user.getIdentifier() or nil
-    end,
-    GetJob = function(source)
-        local user = exports['redem_roleplay']:getUser(source)
-        return user and user.getJob() or nil
-    end,
-    AddItem    = function(source, item, count) exports['redem_roleplay']:addItem(source, item, count) end,
-    RemoveItem = function(source, item, count) exports['redem_roleplay']:removeItem(source, item, count) end,
-    HasItem    = function(source, item, count)
-        local inv = exports['redem_roleplay']:getItem(source, item)
-        return inv and inv.count >= (count or 1)
-    end,
-    GetMoney    = function(source) return exports['redem_roleplay']:getMoney(source) or 0 end,
-    AddMoney    = function(source, amount) exports['redem_roleplay']:addMoney(source, amount) end,
-    RemoveMoney = function(source, amount) exports['redem_roleplay']:removeMoney(source, amount) end,
-    Notify      = function(source, message, ntype)
-        TriggerClientEvent('redem_roleplay:client:notify', source, message)
-    end
-}
-
--- ─── QBR Core ────────────────────────────────────────────────────────────────
-adapters['qbr-core'] = {
-    GetPlayer = function(source)
-        local Core = exports['qbr-core']:GetCoreObject()
-        return Core.Functions.GetPlayer(source)
-    end,
-    GetIdentifier = function(source)
-        local Core = exports['qbr-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
-        return player and player.PlayerData and player.PlayerData.citizenid or nil
-    end,
-    GetJob = function(source)
-        local Core = exports['qbr-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
-        return player and player.PlayerData and player.PlayerData.job and player.PlayerData.job.name or nil
-    end,
-    AddItem    = function(source, item, count) exports['qbr-core']:GetCoreObject().Functions.GetPlayer(source).Functions.AddItem(item, count) end,
-    RemoveItem = function(source, item, count) exports['qbr-core']:GetCoreObject().Functions.GetPlayer(source).Functions.RemoveItem(item, count) end,
-    HasItem    = function(source, item, count)
-        local p = exports['qbr-core']:GetCoreObject().Functions.GetPlayer(source)
-        local inv = p and p.Functions.GetItemByName(item)
-        return inv and inv.amount >= (count or 1)
-    end,
-    GetMoney    = function(source) local p = exports['qbr-core']:GetCoreObject().Functions.GetPlayer(source); return p and p.Functions.GetMoney('cash') or 0 end,
-    AddMoney    = function(source, amount) exports['qbr-core']:GetCoreObject().Functions.GetPlayer(source).Functions.AddMoney('cash', amount) end,
-    RemoveMoney = function(source, amount) exports['qbr-core']:GetCoreObject().Functions.GetPlayer(source).Functions.RemoveMoney('cash', amount) end,
-    Notify      = function(source, message, ntype)
-        TriggerClientEvent('ox_lib:notify', source, { title = 'Ranch', description = message, type = ntype or 'inform' })
-    end
-}
-
--- ─── QR Core ─────────────────────────────────────────────────────────────────
-adapters['qr-core'] = {
-    GetPlayer = function(source)
-        local Core = exports['qr-core']:GetCoreObject()
-        return Core.Functions.GetPlayer(source)
-    end,
-    GetIdentifier = function(source)
-        local Core = exports['qr-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
-        return player and player.PlayerData and player.PlayerData.citizenid or nil
-    end,
-    GetJob = function(source)
-        local Core = exports['qr-core']:GetCoreObject()
-        local player = Core.Functions.GetPlayer(source)
-        return player and player.PlayerData and player.PlayerData.job and player.PlayerData.job.name or nil
-    end,
-    AddItem    = function(source, item, count) exports['qr-core']:GetCoreObject().Functions.GetPlayer(source).Functions.AddItem(item, count) end,
-    RemoveItem = function(source, item, count) exports['qr-core']:GetCoreObject().Functions.GetPlayer(source).Functions.RemoveItem(item, count) end,
-    HasItem    = function(source, item, count)
-        local p = exports['qr-core']:GetCoreObject().Functions.GetPlayer(source)
-        local inv = p and p.Functions.GetItemByName(item)
-        return inv and inv.amount >= (count or 1)
-    end,
-    GetMoney    = function(source) local p = exports['qr-core']:GetCoreObject().Functions.GetPlayer(source); return p and p.Functions.GetMoney('cash') or 0 end,
-    AddMoney    = function(source, amount) exports['qr-core']:GetCoreObject().Functions.GetPlayer(source).Functions.AddMoney('cash', amount) end,
-    RemoveMoney = function(source, amount) exports['qr-core']:GetCoreObject().Functions.GetPlayer(source).Functions.RemoveMoney('cash', amount) end,
-    Notify      = function(source, message, ntype)
-        TriggerClientEvent('ox_lib:notify', source, { title = 'Ranch', description = message, type = ntype or 'inform' })
-    end
-}
-
--- ─── Standalone fallback ──────────────────────────────────────────────────────
-adapters['standalone'] = {
-    GetPlayer     = function(source) return { source = source } end,
-    GetIdentifier = function(source) return GetPlayerIdentifiers(source) and GetPlayerIdentifiers(source)[1] or tostring(source) end,
-    GetJob        = function(source) return nil end,
-    AddItem       = function(source, item, count) print(('[LXR Ranch] [Standalone] AddItem: player=%s item=%s count=%s'):format(source, item, count)) end,
-    RemoveItem    = function(source, item, count) print(('[LXR Ranch] [Standalone] RemoveItem: player=%s item=%s count=%s'):format(source, item, count)) end,
-    HasItem       = function(source, item, count) return false end,
-    GetMoney      = function(source) return 0 end,
-    AddMoney      = function(source, amount) print(('[LXR Ranch] [Standalone] AddMoney: player=%s amount=%s'):format(source, amount)) end,
-    RemoveMoney   = function(source, amount) print(('[LXR Ranch] [Standalone] RemoveMoney: player=%s amount=%s'):format(source, amount)) end,
-    Notify        = function(source, message, ntype) TriggerClientEvent('chat:addMessage', source, { args = { '[Ranch]', message } }) end
-}
-
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ BRIDGE INITIALISATION █████████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
-
-local function initBridge()
-    local name = detectFramework()
-    local adapter = adapters[name]
-
-    if not adapter then
-        error(string.format(
-            '\n═══════════════════════════════════════════════════════════════════════════════\n' ..
-            '❌ LXR Ranch System — Framework Bridge Failure\n' ..
-            '═══════════════════════════════════════════════════════════════════════════════\n' ..
-            'No valid framework adapter found for: "%s"\n' ..
-            'Supported: lxr-core, rsg-core, vorp_core, redem_roleplay, qbr-core, qr-core, standalone\n' ..
-            'Set Config.Framework = "standalone" to run without a framework.\n' ..
-            '🐺 wolves.land — The Land of Wolves\n' ..
-            '═══════════════════════════════════════════════════════════════════════════════\n',
-            name
-        ))
+        if Framework.Type == 'lxr-core' or Framework.Type == 'rsg-core'
+        or Framework.Type == 'qbr-core' or Framework.Type == 'qr-core' then
+            if player.Functions and player.Functions.AddItem then
+                return player.Functions.AddItem(item, count, false, meta)
+            end
+        elseif Framework.Type == 'vorp_core' then
+            exports.vorp_inventory:addItem(source, item, count, meta)
+            return true
+        elseif Framework.Type == 'redem_roleplay' and player.addItem then
+            player.addItem(item, count)
+            return true
+        end
+        return false
     end
 
-    _detected = name
+    function Framework.RemoveItem(source, item, count)
+        count = count or 1
+        local player = Framework.GetPlayer(source)
+        if not player then return false end
 
-    print(('[LXR Ranch] Framework bridge initialised: %s'):format(name))
-    return adapter
-end
+        if Framework.Type == 'lxr-core' or Framework.Type == 'rsg-core'
+        or Framework.Type == 'qbr-core' or Framework.Type == 'qr-core' then
+            if player.Functions and player.Functions.RemoveItem then
+                return player.Functions.RemoveItem(item, count)
+            end
+        elseif Framework.Type == 'vorp_core' then
+            exports.vorp_inventory:subItem(source, item, count)
+            return true
+        elseif Framework.Type == 'redem_roleplay' and player.removeItem then
+            player.removeItem(item, count)
+            return true
+        end
+        return false
+    end
 
-local _adapter = initBridge()
+    function Framework.AddMoney(source, amount, reason)
+        amount = tonumber(amount) or 0
+        if amount <= 0 then return false end
+        local player = Framework.GetPlayer(source)
+        if not player then return false end
 
--- ████████████████████████████████████████████████████████████████████████████████
--- ████████████████████████ PUBLIC INTERFACE ██████████████████████████████████████
--- ████████████████████████████████████████████████████████████████████████████████
+        if Framework.Type == 'lxr-core' or Framework.Type == 'rsg-core'
+        or Framework.Type == 'qbr-core' or Framework.Type == 'qr-core' then
+            if player.Functions and player.Functions.AddMoney then
+                return player.Functions.AddMoney('cash', amount, reason or 'lxr-advancedranch')
+            end
+        elseif Framework.Type == 'vorp_core' then
+            if player.addCurrency then
+                player.addCurrency(0, amount) -- 0 = dollars
+                return true
+            end
+        elseif Framework.Type == 'redem_roleplay' and player.addMoney then
+            player.addMoney(amount)
+            return true
+        end
+        return false
+    end
 
-function Framework.GetDetected()
-    return _detected
-end
+    function Framework.RemoveMoney(source, amount, reason)
+        amount = tonumber(amount) or 0
+        if amount <= 0 then return false end
+        local player = Framework.GetPlayer(source)
+        if not player then return false end
 
-function Framework.Notify(source, message, ntype)
-    return _adapter.Notify(source, message, ntype)
-end
+        if Framework.Type == 'lxr-core' or Framework.Type == 'rsg-core'
+        or Framework.Type == 'qbr-core' or Framework.Type == 'qr-core' then
+            if player.Functions and player.Functions.RemoveMoney then
+                return player.Functions.RemoveMoney('cash', amount, reason or 'lxr-advancedranch')
+            end
+        elseif Framework.Type == 'vorp_core' then
+            if player.removeCurrency then
+                player.removeCurrency(0, amount)
+                return true
+            end
+        elseif Framework.Type == 'redem_roleplay' and player.removeMoney then
+            player.removeMoney(amount)
+            return true
+        end
+        return false
+    end
 
-function Framework.GetPlayer(source)
-    return _adapter.GetPlayer(source)
-end
+    function Framework.GetMoney(source)
+        local player = Framework.GetPlayer(source)
+        if not player then return 0 end
 
-function Framework.GetIdentifier(source)
-    return _adapter.GetIdentifier(source)
-end
+        if Framework.Type == 'lxr-core' or Framework.Type == 'rsg-core'
+        or Framework.Type == 'qbr-core' or Framework.Type == 'qr-core' then
+            if player.PlayerData and player.PlayerData.money then
+                return player.PlayerData.money.cash or 0
+            end
+        elseif Framework.Type == 'vorp_core' then
+            if player.getUsedCharacter then
+                return player.getUsedCharacter.money or 0
+            end
+        elseif Framework.Type == 'redem_roleplay' and player.getMoney then
+            return player.getMoney() or 0
+        end
+        return 0
+    end
 
-function Framework.GetJob(source)
-    return _adapter.GetJob(source)
-end
+    function Framework.RegisterUsableItem(item, cb)
+        if Framework.Type == 'lxr-core' or Framework.Type == 'rsg-core'
+        or Framework.Type == 'qbr-core' or Framework.Type == 'qr-core' then
+            if Framework.Object and Framework.Object.Functions and Framework.Object.Functions.CreateUseableItem then
+                Framework.Object.Functions.CreateUseableItem(item, cb)
+            end
+        elseif Framework.Type == 'vorp_core' then
+            exports.vorp_inventory:registerUsableItem(item, cb)
+        elseif Framework.Type == 'redem_roleplay' then
+            local ev = 'RegisterUsableItem:' .. item
+            RegisterServerEvent(ev)
+            AddEventHandler(ev, function() cb(source) end)
+        end
+    end
 
-function Framework.AddItem(source, item, count)
-    return _adapter.AddItem(source, item, count)
-end
+    function Framework.Log(source, event, message, data)
+        if not Config.Debug then return end
+        local name = GetPlayerName(source) or 'Unknown'
+        print(('^3[%s] [%s] %s: %s^7'):format(resourceName, name, event, message))
+        if data then print('^3Data:^7 ' .. json.encode(data)) end
+    end
 
-function Framework.RemoveItem(source, item, count)
-    return _adapter.RemoveItem(source, item, count)
-end
-
-function Framework.HasItem(source, item, count)
-    return _adapter.HasItem(source, item, count)
-end
-
-function Framework.GetMoney(source)
-    return _adapter.GetMoney(source)
-end
-
-function Framework.AddMoney(source, amount)
-    return _adapter.AddMoney(source, amount)
-end
-
-function Framework.RemoveMoney(source, amount)
-    return _adapter.RemoveMoney(source, amount)
+    function Framework.IsAdmin(source)
+        if not Config.Admin.enabled and Config.Admin.useAce then
+            if IsPlayerAceAllowed(source, Config.Admin.acePermission) then
+                return true
+            end
+        end
+        if Config.Admin.useAce and IsPlayerAceAllowed(source, Config.Admin.acePermission) then
+            return true
+        end
+        if Config.Admin.useIdentifiers then
+            local idents = GetPlayerIdentifiers(source) or {}
+            for _, id in ipairs(idents) do
+                if Config.Admin.identifiers[id] then return true end
+            end
+        end
+        return false
+    end
 end
 
 -- ████████████████████████████████████████████████████████████████████████████████
+-- ████████████████████████ CLIENT-ONLY ADAPTER ███████████████████████████████████
+-- ████████████████████████████████████████████████████████████████████████████████
+
+if IS_CLIENT then
+
+    function Framework.GetPlayerData()
+        if Framework.Type == 'lxr-core' or Framework.Type == 'rsg-core'
+        or Framework.Type == 'qbr-core' or Framework.Type == 'qr-core' then
+            if Framework.Object and Framework.Object.Functions then
+                return Framework.Object.Functions.GetPlayerData()
+            end
+        elseif Framework.Type == 'vorp_core' then
+            -- VORP exposes character via events; return a stub
+            return LocalPlayer and LocalPlayer.state and LocalPlayer.state.Character or {}
+        end
+        return {}
+    end
+end
+
+_G.Framework = Framework
+
+-- ═══════════════════════════════════════════════════════════════════════════════
 -- 🐺 wolves.land — The Land of Wolves
--- © 2026 iBoss21 / The Lux Empire | All Rights Reserved
--- ████████████████████████████████████████████████████████████████████████████████
-
-return Framework
+-- © 2026 iBoss21 / The Lux Empire — All Rights Reserved
+-- ═══════════════════════════════════════════════════════════════════════════════
