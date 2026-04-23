@@ -40,11 +40,7 @@ end
 
 -- ████████████████████████████████████████████████████████████████████████████████
 
-local Config = require("shared.config")
-local Utils = require("shared.utils")
-local Storage = require("server.storage")
-
-local RanchManager = {}
+RanchManager = {}
 RanchManager.Ranches = Storage.Ranches:Get() or {}
 RanchManager.Vegetation = Storage.Vegetation:Get() or {}
 
@@ -261,5 +257,3 @@ AddEventHandler("ranch:ownershipChanged", function(ranchId, ownerIdentifier)
     }
     dispatchDiscord("ownershipChanged", embed)
 end)
-
-return RanchManager

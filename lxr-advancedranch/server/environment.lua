@@ -1,9 +1,4 @@
-local Config = require("shared.config")
-local Utils = require("shared.utils")
-local Storage = require("server.storage")
-local RanchManager = require("server.ranch_manager")
-
-local Environment = {}
+Environment = {}
 Environment.State = {}
 
 local function defaultState()
@@ -175,5 +170,3 @@ AddEventHandler("onResourceStart", function(resourceName)
     if resourceName ~= GetCurrentResourceName() then return end
     Environment.Initialize()
 end)
-
-return Environment

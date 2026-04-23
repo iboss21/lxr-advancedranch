@@ -1,9 +1,4 @@
-local Config = require("shared.config")
-local Utils = require("shared.utils")
-local Storage = require("server.storage")
-local RanchManager = require("server.ranch_manager")
-
-local Livestock = {}
+Livestock = {}
 Livestock.Animals = Storage.Animals:Get("data") or {}
 
 local function generateId(species)
@@ -181,5 +176,3 @@ RegisterNetEvent("ranch:livestock:requestSync", function(ranchId)
     local src = source
     TriggerClientEvent("ranch:livestock:update", src, ranchId, ensureRanchAnimals(ranchId))
 end)
-
-return Livestock

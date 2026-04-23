@@ -1,10 +1,4 @@
-local Config = require("shared.config")
-local Utils = require("shared.utils")
-local Storage = require("server.storage")
-local RanchManager = require("server.ranch_manager")
-local Environment = require("server.environment")
-
-local Economy = {}
+Economy = {}
 Economy.Prices = Storage.Economy:Get("prices") or {}
 Economy.Contracts = Storage.Economy:Get("contracts") or {}
 Economy.Auctions = Storage.Economy:Get("auctions") or {}
@@ -127,5 +121,3 @@ RegisterNetEvent("ranch:economy:requestSync", function()
         auctions = Economy.Auctions
     })
 end)
-
-return Economy

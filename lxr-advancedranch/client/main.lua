@@ -1,5 +1,3 @@
-local Config = require("shared.config")
-
 local RanchClient = {
     ranches = {},
     zones = {},

@@ -1,9 +1,4 @@
-local Config = require("shared.config")
-local Utils = require("shared.utils")
-local Storage = require("server.storage")
-local RanchManager = require("server.ranch_manager")
-
-local Progression = {}
+Progression = {}
 Progression.Data = Storage.Progression:Get("ranches") or {}
 
 local function save()
@@ -71,5 +66,3 @@ RegisterNetEvent("ranch:progression:requestSync", function(ranchId)
     local src = source
     TriggerClientEvent("ranch:progression:update", src, ranchId, ensure(ranchId))
 end)
-
-return Progression
