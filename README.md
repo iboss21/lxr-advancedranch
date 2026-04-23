@@ -12,7 +12,10 @@
 ## 📸 Screenshots
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/7f4cfa18-4bce-48cb-919d-8752478bb3f6" alt="Ranch Dashboard" width="800"/>
+<img width="1092" height="1095" alt="preview" src="https://github.com/user-attachments/assets/819a6de8-df63-4da3-8f1f-f8dcad8a9f53" />
+<img width="1440" height="774" alt="preview (1)" src="https://github.com/user-attachments/assets/b788c6f0-e0bd-40d3-a314-889228f68cc4" />
+<img width="1133" height="1064" alt="preview (2)" src="https://github.com/user-attachments/assets/21410e2b-081a-40e5-8df7-78feab1d558a" />
+
   <p><em>Supreme-level dashboard with real-time ranch statistics and health monitoring</em></p>
   
   <p><em>Additional screenshots coming soon: Livestock Management, Environment System, Economy & Ledger, Progression & Skills, Auction House</em></p>
