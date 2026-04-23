@@ -134,10 +134,11 @@ ul, ol { list-style: none; }
     position: relative;
     z-index: 2;
 }
-.header-brand { display: flex; align-items: center; gap: 16px; }
+.header-brand { display: flex; align-items: center; gap: 16px; min-width: 0; }
 .brand-mark   { font-size: 42px; line-height: 1; }
-.brand-title  { font-family: var(--wl-font-serif); font-weight: 800; font-size: 28px; letter-spacing: 0.02em; }
-.brand-sub    { font-family: var(--wl-font-script); font-size: 22px; color: var(--wl-bronze); margin-top: -4px; }
+.brand-text   { min-width: 0; }
+.brand-title  { font-family: var(--wl-font-serif); font-weight: 800; font-size: 28px; letter-spacing: 0.02em; white-space: nowrap; }
+.brand-sub    { font-family: var(--wl-font-script); font-size: 22px; color: var(--wl-bronze); margin-top: -4px; white-space: nowrap; }
 
 .header-meta { display: flex; gap: 28px; justify-content: center; }
 .meta-row    { display: flex; flex-direction: column; align-items: center; }
@@ -223,7 +224,7 @@ ul, ol { list-style: none; }
     color: var(--wl-gold-hi); letter-spacing: 0.02em;
 }
 .panel-head.small .panel-title { font-size: 18px; color: var(--wl-gold); }
-.panel-sub   { font-family: var(--wl-font-script); font-size: 20px; color: var(--wl-text-soft); }
+.panel-sub   { font-family: var(--wl-font-script); font-size: 20px; color: var(--wl-text-soft); white-space: nowrap; }
 .panel-tools { display: flex; gap: 10px; align-items: center; }
 
 /* ════════════════════════════════════════════════════════════════════════
@@ -517,18 +518,23 @@ ul, ol { list-style: none; }
     grid-template-columns: auto 1fr auto auto auto;
     gap: 18px; align-items: center;
 }
-.auction-row .au-lot { font-family: var(--wl-font-serif); font-weight: 700; font-size: 17px; color: var(--wl-gold-hi); min-width: 140px; }
-.auction-row .au-body { font-family: var(--wl-font-type); font-size: 12px; color: var(--wl-text-soft); }
+.auction-row .au-lot { font-family: var(--wl-font-serif); font-weight: 700; font-size: 17px; color: var(--wl-gold-hi); min-width: 160px; white-space: nowrap; }
+.auction-row .au-body { font-family: var(--wl-font-type); font-size: 12px; color: var(--wl-text-soft); line-height: 1.6; min-width: 180px; }
 .auction-row .au-bid { font-family: var(--wl-font-serif); font-weight: 800; font-size: 22px; color: var(--wl-gold-hi); }
 .auction-row .au-time { font-family: var(--wl-font-type); font-size: 12px; color: var(--wl-warn); }
+.auction-row > div:last-child { display: flex; gap: 8px; align-items: center; }
 .auction-row input { width: 110px; }
 
 .auction-form {
-    display: grid;
-    grid-template-columns: 150px 1fr 140px auto;
+    display: flex;
     gap: 10px;
     align-items: center;
+    flex-wrap: wrap;
 }
+.auction-form .select-input { flex: 0 0 150px; }
+.auction-form .text-input[type="text"] { flex: 1 1 220px; min-width: 200px; }
+.auction-form .text-input[type="number"] { flex: 0 0 140px; }
+.auction-form .btn { flex: 0 0 auto; }
 
 /* ════════════════════════════════════════════════════════════════════════
    🔧 TOASTS

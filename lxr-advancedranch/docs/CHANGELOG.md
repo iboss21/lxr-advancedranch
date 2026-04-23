@@ -4,6 +4,20 @@ Versioning follows [Semantic Versioning](https://semver.org). Breaking changes b
 
 ---
 
+## [1.0.1] — 2026-04-23
+
+### Fixed — NUI layout
+
+- **Auction row:** the bid input and Bid button in the last grid cell were stacking vertically because the wrapper `<div>` had no flex context. Added `.auction-row > div:last-child { display: flex; gap: 8px; align-items: center; }` so they render side-by-side as intended.
+- **Auction lot / body columns:** `.au-lot` was wrapping its two-word lot type across multiple lines in narrower viewports; `.au-body` was cramming seller + bidder metadata into a 1-char-wide column. Both now have `min-width` floors (160px and 180px) and `.au-lot` gets `white-space: nowrap`.
+- **Create Lot form:** rigid 4-column grid (`150px 1fr 140px auto`) overflowed on viewports under ~700px. Replaced with a flex layout using `flex-wrap: wrap` and per-field `flex` basis — the row now degrades gracefully.
+- **Header brand text:** "Ranch Journal" / "The Land of Wolves" subtitle was wrapping the Great Vibes script mid-word on narrow widths. Added `white-space: nowrap` to `.brand-title` and `.brand-sub`, plus `min-width: 0` on the flex container so other header sections can still shrink properly.
+- **Panel subtitle (ranch name):** "Redwood Creek Ranch" was breaking across two lines in the dashboard panel header. Added `white-space: nowrap` to `.panel-sub`.
+
+None of these touched `server/`, `client/`, `shared/`, or `config.lua` — pure NUI polish. No DB migration required. Drop-in replacement.
+
+---
+
 ## [1.0.0] — 2026-04-23
 
 Initial public release.
