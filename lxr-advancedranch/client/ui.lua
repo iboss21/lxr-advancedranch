@@ -1,7 +1,6 @@
 -- Ranch System UI Client Handler
 -- Handles NUI interactions and UI display for RedM
 
-local Config = require("shared.config")
 local UIOpen = false
 local currentRanchId = nil
 

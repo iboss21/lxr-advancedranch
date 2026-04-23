@@ -1,5 +1,3 @@
-local Config = require("shared.config")
-
 local creatingZone = false
 local zonePoints = {}
 local zoneId = nil

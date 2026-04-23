@@ -1,6 +1,4 @@
-local Config = require("shared.config")
-
-local Utils = {}
+Utils = {}
 
 local identifierMap = {
     license = "license:",
@@ -196,4 +194,3 @@ function Utils.GetStorageKeys()
     return keys
 end
 
-return Utils

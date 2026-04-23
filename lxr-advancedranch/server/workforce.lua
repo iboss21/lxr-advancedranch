@@ -1,9 +1,4 @@
-local Config = require("shared.config")
-local Utils = require("shared.utils")
-local Storage = require("server.storage")
-local RanchManager = require("server.ranch_manager")
-
-local Workforce = {}
+Workforce = {}
 Workforce.Rosters = Storage.Workforce:Get("rosters") or {}
 Workforce.Tasks = Storage.Workforce:Get("tasks") or {}
 
@@ -123,5 +118,3 @@ RegisterNetEvent("ranch:workforce:requestSync", function(ranchId)
     TriggerClientEvent("ranch:workforce:roster", src, ranchId, ensureRoster(ranchId))
     TriggerClientEvent("ranch:workforce:tasks", src, ranchId, ensureTaskBoard(ranchId))
 end)
-
-return Workforce

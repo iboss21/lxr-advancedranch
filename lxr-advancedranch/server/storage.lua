@@ -1,6 +1,3 @@
-local Config = require("shared.config")
-local Utils = require("shared.utils")
-
 local Storage = {}
 Storage.__index = Storage
 
@@ -76,4 +73,4 @@ function api.GetStore(name)
     return stores[name]
 end
 
-return api
+_G.Storage = api

@@ -11,8 +11,6 @@
 -- Opens via  /ranchadmin  command  or the configured keybind (default F6).
 -- ─────────────────────────────────────────────────────────────────────────────
 
-local Config = require("shared.config")
-
 -- Guard: feature disabled in config
 if not Config.AdminMenu or not Config.AdminMenu.Enabled then
     return

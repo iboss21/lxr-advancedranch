@@ -1,12 +1,3 @@
-local Config = require("shared.config")
-local Utils = require("shared.utils")
-local RanchManager = require("server.ranch_manager")
-local Environment = require("server.environment")
-local Livestock = require("server.livestock")
-local Workforce = require("server.workforce")
-local Economy = require("server.economy")
-local Progression = require("server.progression")
-
 local function ensureAdmin(source)
     if not Utils.IsAdmin(source) then
         TriggerClientEvent("chat:addMessage", source, { args = { "Ranch", "You do not have permission." } })

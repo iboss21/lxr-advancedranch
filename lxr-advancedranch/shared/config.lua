@@ -14,5 +14,4 @@
 ]]
 
 -- Config is already populated by the root config.lua shared_script.
--- This module exposes it for server/client files that use require().
-return Config
+-- No return needed; Config is accessed as a global.

@@ -1,5 +1,3 @@
-local Config = require("shared.config")
-
 local function applyVegetation(zone)
     if not zone or not zone.points then return end
     local density = zone.vegetation or Config.ZoneDefaults.VegetationState
